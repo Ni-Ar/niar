@@ -1,0 +1,26 @@
+Package: niar
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person("Niccolò", "Arecco", , "arecco.niccolo@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-1760-3898"))
+Description: This is a collection of all the functions I've written to analyse data in R.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Imports:
+	matrixStats (>= 0.6.1),
+	ggplot2 (>= 3.3.5),
+	ggrepel (>= 0.9.1),
+	scales (>= 1.1.1),
+	patchwork (>= 1.1.1),
+	dplyr (>= 1.0.7),
+	tidyr (>= 1.1.4),
+	forcats (>= 0.5.1),
+	magrittr (>= 2.0.2)
+Suggests: 
+    rmarkdown,
+    knitr
+VignetteBuilder: knitr
