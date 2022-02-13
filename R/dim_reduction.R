@@ -118,13 +118,16 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   }
   
   if (show_variance) {
-    ggplot2::qplot(data = as.data.frame(per100Var), geom = "col", show.legend = F,
-                   x = as.numeric(rownames(as.data.frame(per100Var))),y = per100Var,
+    require('ggplot2')
+    ggplot2::qplot(data = as.data.frame(per100Var), geom = "col", 
+                   x = as.numeric(rownames(as.data.frame(per100Var))),
+                   y = per100Var, show.legend = F,
                    xlab = paste0("Components n = ", length(per100Var) ), 
                    ylab = "Variance explained (%)") +
-      scale_y_continuous(expand = expansion(add = c(0, NA), mult = c(0, NA))) +
-      theme_bw() +
-      theme(axis.text = element_text(colour = "black"), 
+      ggplot2::scale_y_continuous(expand = ggplot2::expansion(add = c(0, NA), 
+                                                              mult = c(0, NA))) +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text = element_text(colour = "black"), 
             axis.line = element_line(color = 'black'),
             panel.grid.minor = element_blank(),
             panel.grid.major = element_blank(),
@@ -170,7 +173,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   } else {
     require('magrittr')
     require('ggplot2')
-    require('ggrepel')
+    # require('ggrepel')
     # ---- Plot PCA
     ggplot2::ggplot(data = pca_df) +
       aes(x = pca_df[, x], y = pca_df[, y], fill = pca_df[, m_fill] ) +

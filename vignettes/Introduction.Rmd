@@ -10,7 +10,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width = 7, fig.height = 4
 )
 ```
 
@@ -18,9 +19,9 @@ knitr::opts_chunk$set(
 library(niar)
 ```
 
-Generate a quick and simple count matrix with fake rownames
-```{r generate dummy data}
-# Matrix dimensions: 10 columns x 15000 rows
+Generate fake gene names
+```{r}
+set.seed(16)
 n = 15000
 sapply(1:n, function(x) {
   x <- paste0(c(sample(LETTERS, 1, replace = TRUE),
@@ -29,85 +30,74 @@ sapply(1:n, function(x) {
   ) -> rows_IDs
 
 j <- length(unique(rows_IDs))
+```
 
-# Make a fake dataframe and coerc it to a matrix
-data.frame(Sample1 = rnorm(n = j, mean = 5,  sd = 2), 
-           Sample2 = rnorm(n = j, mean = 4,  sd = 1.5),
-           Sample3 = rnorm(n = j, mean = 3,  sd = 1.75),
-           Sample4 = rnorm(n = j, mean = 10, sd = 1.2),
-           Sample5 = rnorm(n = j, mean = 12, sd = 0.5),
-           Sample6 = rnorm(n = j, mean = 11, sd = 1.9), 
-           Sample7 = rnorm(n = j, mean = 11, sd = 2.1), 
-           Sample8 = rnorm(n = j, mean = 13, sd = 1.6), 
-           Sample9 = rnorm(n = j, mean = 6,  sd = 1), 
-           Sample0 = rnorm(n = j, mean = 15, sd = 1), 
+Show negative binomial distribution of simulated RNA-seq
+```{r}
+hist(rnbinom(n = j, mu = 400, size = 4), breaks = 40 )
+```
+
+Generate a count matrix with 10 RNA-seq samples.
+```{r}
+data.frame(Sample1 = rnbinom(n = j, mu = 400, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample2 = rnbinom(n = j, mu = 395, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample3 = rnbinom(n = j, mu = 396, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample4 = rnbinom(n = j, mu = 397, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample5 = rnbinom(n = j, mu = 430, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample6 = rnbinom(n = j, mu = 450, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample7 = rnbinom(n = j, mu = 420, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample8 = rnbinom(n = j, mu = 410, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample9 = rnbinom(n = j, mu = 400, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample0 = rnbinom(n = j, mu = 390, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
            stringsAsFactors = FALSE, 
-           row.names = unique(rows_IDs)) -> df
+           row.names = unique(rows_IDs) ) -> df
 mat <- as.matrix(df)
 ```
 
-Create an example metadata dataframe
-```{r metadata}
+Scale the matrix
+```{r}
+mat <- log2(mat)
+```
+
+Super easy to use!
+```{r}
+showme_PCA2D(mat)
+```
+
+Show extra plots, also easy!
+```{r}
+showme_PCA2D(mat = mat, show_variance = T, show_stats = T)
+```
+
+Checking loadings real quick? Very easy!
+```{r}
+showme_PCA2D(mat = mat, n_loadings = 12)
+```
+
+What to show extra info on the plot? Make a metadata dataframe.
+```{r}
 data.frame(sample_name = paste0("Sample", 0:9),
            replicate = c(rep(c(1:3), 3), 1), 
            condition = c(rep("A", 5), rep("Z", 5)),
            stringsAsFactors = FALSE) -> mt
 ```
 
-```{r example1 }
-showme_PCA2D(mat, x = 2, m_label = F, center = T)
+Now specify the metadata with `mt` and the dataframe colum with the `mat` column names with `mcol` and now the extra info can be used to colour and label the points.
+```{r}
+showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
+             m_label = "replicate", m_fill = "condition")
 ```
 
-```{r example2 }
-# showme_PCA2D(mat = mat, mt = mt)
-```
-
-```{r example3 }
-showme_PCA2D(mat = mat, mcol = "sample_name", return_data = F)
-```
-
-```{r example4 }
-showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name",
-              m_fill = "replicate")
-```
-
-```{r example5 }
-showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 2)
-```
-
-Change components number
-```{r example6 }
-showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3)
-```
-
-```{r example7 }
+Select top rows to use for PCA.
+```{r}
 showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
              n_top_var = 40, m_fill = "replicate", m_label = F)
 ```
 
-```{r example8 }
-showme_PCA2D(mat = mat, n_loadings = 12)
-```
-
-Variance extra plot
-```{r example9, echo = FALSE}
-showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name",
-             show_variance = T, show_stats = F)
-```
-
-Also stats!
-```{r example10, echo = FALSE }
+Do not use realistic aspect ratio.
+```{r}
 showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", 
-             show_variance = T, show_stats = T)
-```
-
-Disable aspect ratio
-```{r example11, echo = FALSE }
-showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", m_fill = "replicate",
-             x = 3, show_stats = T, m_label = F, real_aspect_ratio = F)
-```
-
-Or just return data
-```{r example12, echo = FALSE }
-showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", return_data = T )
+             m_fill = "replicate", x = 1, y = 3,
+             show_stats = F, m_label = F, 
+             real_aspect_ratio = F)
 ```

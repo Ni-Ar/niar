@@ -35,4 +35,7 @@ vignettes/*.pdf
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
 ._DESCRIPTION
-._README
+._README.md
+._*
+inst/doc
+R/._*.R
