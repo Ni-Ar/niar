@@ -169,11 +169,33 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   
   # ---- Return data of plot the PCA
   if (return_data) {
-    return(pca_df)
+    # if not plotting loadings return the PCA points coordinates
+    if ( is.null(n_loadings) ) {
+      return(pca_df) 
+      # if number of loadings it not NULL return the loadings dataframe
+    } else if ( !is.null(n_loadings) ) {
+      require('dplyr')
+      require('forcats')
+      require('scales')
+      pca_loadings <- data.frame( PCx = pca_data$rotation[, x], 
+                                  stringsAsFactors = F) 
+      pca_loadings$Observations <- rownames(pca_loadings)
+      pca_loadings %>%
+        dplyr::mutate(Observations = fct_reorder(Observations, PCx, .desc = T)) %>%
+        dplyr::arrange(.data = ., desc(PCx) ) %>%
+        setNames(., c(paste0("PC", x), "Observatios") ) -> all_loadings_df
+      rownames(all_loadings_df) <- NULL
+      message("Returning the loadings of compoment: ", x, "; ", 
+              nrow(all_loadings_df), " observations in decreasing order." )
+      return(all_loadings_df)
+      
+    } else {
+      stop("There's something wrong with the loadings...")
+    }
   } else {
     require('magrittr')
     require('ggplot2')
-    # require('ggrepel')
+    require('ggrepel')
     # ---- Plot PCA
     ggplot2::ggplot(data = pca_df) +
       aes(x = pca_df[, x], y = pca_df[, y], fill = pca_df[, m_fill] ) +
@@ -216,9 +238,9 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     
     # --- Plot PCA loadings
     if ( !is.null(n_loadings) ) {
-      # require('dplyr')
-      # require('forcats')
-      # require('scales')
+      require('dplyr')
+      require('forcats')
+      require('scales')
       if (n_loadings > length(pca_data$rotation[, x]) ) {
         warning("Don't ask for more loading to plot than what there ", 
                 "actually are.\n", "Loadings in input matrix: ", 
