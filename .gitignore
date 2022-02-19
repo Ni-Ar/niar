@@ -34,11 +34,14 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
-._DESCRIPTION
-._README.md
-._*
 inst/doc
 R/._*.R
 doc/*.R
 doc/*.Rmd
 /Meta/
+
+# Some bullshit files that the systems create
+.fuse_hidden*
+.DS_Store
+._.DS_Store
+._*
