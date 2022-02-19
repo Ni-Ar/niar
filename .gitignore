@@ -39,5 +39,6 @@ rsconnect/
 ._*
 inst/doc
 R/._*.R
-/doc/
+doc/*.R
+doc/*.Rmd
 /Meta/
