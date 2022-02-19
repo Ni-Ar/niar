@@ -37,4 +37,4 @@ showme_PCA2D(mat = mat, n_loadings = 12)
 
 ## Vignettes
 
-Test [link](https://htmlpreview.github.io/?https://github.com/Ni-Ar/niar/doc/Introduction.html) for PCA function.
+[Link for PCA](https://htmlpreview.github.io/?https://github.com/Ni-Ar/niar/blob/main/doc/Introduction.html).
