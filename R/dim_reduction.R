@@ -1,23 +1,23 @@
 #' Given a matrix show me the principal components and other neat things.
 #'
 #' @param mat A matrix 
-#' @param x Integer indicating principal component on X-axis. Defaul 1
-#' @param y Integer indicating principal component on Y-axis. Default x + 1
-#' @param mt Dataframe: contains matrix columns additional information, if not provided plot can't be labelled nor coloured according to specific information.
-#' @param mcol Character pointing one column of metadata that contains the matrix column names
-#' @param m_fill Character pointing one column of metadata specifying how to colour the samples.
-#' @param m_label Character pointing one column of metadata specifying how to label the points in the PCA. Set to FALSE for omitting labels in plot.
-#' @param n_top_var Integer: Number of most variable matrix rows to use for `prcomp`
+#' @param x Integer indicating principal component on X-axis. Default 1.
+#' @param y Integer indicating principal component on Y-axis. Default `x + 1`.
+#' @param mt `data.frame` containing `mat` additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters.
+#' @param mcol Character specifying one column of `mt` that contains the matrix column names.
+#' @param m_fill Character specifying one column name of `mt` to use for colouring the samples.
+#' @param m_label Character or logical specifying one column name of `mt` to use for labelling the points in the PCA. Set to `FALSE` for omitting labels in plot.
+#' @param n_top_var Integer: Number of most variable matrix rows to use for `prcomp`.
 #' @param show_variance Logical. Show an extra plot with the variance on each component.
 #' @param show_stats Logical. Show an extra plot with the summary statistics for the data in `mat`.
-#' @param filt_mat Logical. Fil
+#' @param filt_mat Logical. Whether or not to remove certain rows `mat` that contain to many `NA`. See `NA_filt_thrshld` to specify the threshold for removing.
 #' @param NA_filt_thrshld Integer between 0 and 1: maximum % of NA accepted on `mat` rows. 
-#' @param n_loadings Integer indicating how many top and bottom loadings to plot
+#' @param n_loadings Integer indicating how many top and bottom loadings to plot.
 #' @param return_data Logical. If `TRUE` returns data for plot instead of plot.
-#' @param real_aspect_raio Logical. If `TRUE` represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2
+#' @param real_aspect_raio Logical. If `TRUE` represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .
 #' @param ... Set extra parameter for the `prcomp` function like `scale.` (default FALSE) and `center` (default TRUE).
 #'
-#' @return Either a plot, a combination of plots or a dataframe. 
+#' @return Either a plot (created with `ggplot2`), a combination of plots ( created with `patchwork`) or a `data.frame`. 
 #' @export
 #'
 #' @examples
