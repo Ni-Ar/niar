@@ -29,7 +29,7 @@
 #' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)              
 showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol, 
                          m_fill = mcol, m_label = mcol, 
-                         n_top_var = 100, filt_mat = FALSE, 
+                         n_top_var = 250, filt_mat = FALSE, 
                          NA_filt_thrshld = 0.95, show_variance = FALSE, 
                          show_stats = FALSE, n_loadings = NULL, 
                          return_data = FALSE, real_aspect_ratio = TRUE, ... ) {
@@ -94,7 +94,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   indx <- order(row_vars, decreasing = TRUE)[seq_len(min(n_top_var, length(row_vars)))]
   
   # Perform PCA
-  pca_data <- stats::prcomp(x = t(mat[indx,]), ...)
+  pca_data <- stats::prcomp(x = t( mat[indx, ] ), retx = TRUE, ...)
   per100Var <- round( 100*pca_data$sdev^2 / sum(pca_data$sdev^2), 1)
   
   # Check the information content on each component
@@ -174,21 +174,8 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
       return(pca_df) 
       # if number of loadings it not NULL return the loadings dataframe
     } else if ( !is.null(n_loadings) ) {
-      require('dplyr')
-      require('forcats')
-      require('scales')
-      pca_loadings <- data.frame( PCx = pca_data$rotation[, x], 
-                                  stringsAsFactors = F) 
-      pca_loadings$Observations <- rownames(pca_loadings)
-      pca_loadings %>%
-        dplyr::mutate(Observations = fct_reorder(Observations, PCx, .desc = T)) %>%
-        dplyr::arrange(.data = ., desc(PCx) ) %>%
-        setNames(., c(paste0("PC", x), "Observatios") ) -> all_loadings_df
-      rownames(all_loadings_df) <- NULL
-      message("Returning the loadings of compoment: ", x, "; ", 
-              nrow(all_loadings_df), " observations in decreasing order." )
+      all_loadings_df <- as.data.frame(pca_data$rotation, stringsAsFactors = F)
       return(all_loadings_df)
-      
     } else {
       stop("There's something wrong with the loadings...")
     }
@@ -220,7 +207,6 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     # https://figshare.com/articles/figure/Aspect_ratio_for_PCA_plots_/8301197/1
     if (real_aspect_ratio == TRUE) {
       plot_aspect_ratio <- round(per100Var[y] / per100Var[x], 1)
-      
       if (plot_aspect_ratio == 0) {
         warning("There's very little variance in your data! ",
                 "The ratio between the variance on the plotted components is: ",
@@ -228,13 +214,12 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
                 "\nSetting PCA plot aspect ratio to 1.")
         plot_aspect_ratio <- 1
       }
-      p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio ) 
-      
     } else if (real_aspect_ratio == FALSE ) {
-      p_pca <- p_pca + coord_fixed(clip = "off", ratio = 1 ) 
+      plot_aspect_ratio <- 1
     } else { 
       stop("real_aspect_ratio must be a logical! Either TRUE or FALSE)")
     }
+    p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )     
     
     # --- Plot PCA loadings
     if ( !is.null(n_loadings) ) {
