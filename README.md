@@ -1,16 +1,6 @@
 # My personal `R` package
 
-[ ] return loading `pca_loadings <- as.data.frame(pca_data$rotation, stringsAsFactors = F) ` to return all loadings at once.
-
-[ ] For the aspect ratio: move `p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio ) ` outside of the if statements.
-
-[ ] Specify prcomp defaults `stats::prcomp(x = mat, retx = TRUE, center = T, scale. = F)`
-
-
-
-Here, I collect the R function that I’ve created over time. This is not really stable or robust, but it’s easy to use, correct, and useful.
-
-Feedback is welcome. This is my first `R` package.
+Here, I collect R functions that I’ve created over time. This is not really stable or robust, the primary purpose of this package is to neatly organise my R functions in one place and have them ready to use in an easy way. Feedback is welcome as this is my first `R` package.
 
 ## Installation 
 
@@ -41,16 +31,24 @@ Which should not throw you an error if all the dependencies are already in the `
 
 ## Examples
 
-Currently there’s only one function to plot PCA. The easiest way to make a PCR assuming `mat` is your numerical matrix:
+Currently there’s only one function to plot PCA. The easiest way to make a PCR assuming `mat` is your numerical matrix is:
 
 ```R
 showme_PCA2D(mat)
 ```
 
+To know more you can type:
+
+```R
+?showme_PCA2D()
+```
+
+
+
 The underlying function is `prcomp` and you can pass extra arguments with `...` for example:
 
 ```R
-showme_PCA2D(mat, x = 2, scale. = T, center = F)
+showme_PCA2D(mat, scale. = T, center = F)
 ```
 
 Extra info can be added from a dataframe  ( `mt`) which serves as a metadata. To specify which column of the dataframe contains the `colnames` of the matrix `mat` use `mcol`. In the following example the `mt` contains a column called `sample_name`
