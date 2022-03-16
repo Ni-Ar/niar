@@ -1,0 +1,255 @@
+---
+title: "Dimensionality Reduction Introduction"
+author: "Niccolo Arecco"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction_Dim_Reduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7, fig.height = 4
+)
+```
+
+
+# Intro 
+To better understand what a Principal Component Analysis does consider the following example in which 2 features (e.g. observations or gene expression abundance) are measured for 100 samples (different experiments).
+
+```{r first dummy date example}
+set.seed(strtoi('0x10'))
+x <- rnorm(n = 100, mean = 50, sd = 10)
+y <- x + rnorm(n = 100, mean = 0, sd = 5)
+dat <- data.frame(FeatureX = x, FeatureY = y)
+
+# Add some fake row.names
+sapply(1:100, function(x) {
+  x <- paste0(c(sample(LETTERS, 1, replace = TRUE),
+      tolower(sample(LETTERS, 4, replace = TRUE)),
+      sample(1:9, 1, replace = TRUE)), collapse = "") } 
+  ) -> rownames(dat)
+
+# Add some extra columns to make a better visualisation
+dat$Ratio <- log2(dat$FeatureX * dat$FeatureY)
+dat$Label <-  ( dat$Ratio > quantile(dat$Ratio , 0.95) | dat$Ratio < quantile(dat$Ratio , 0.05)  )
+
+t(head(dat))
+```
+
+We can visualise the relation between the 2 features by plotting them in 2D.
+
+```{r simple scatter plot X vs Y}
+library(ggplot2)
+library(ggrepel)
+ggplot(data = dat, aes(FeatureX, FeatureY, fill = Ratio ) ) +
+  coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)  ) +
+  geom_vline(xintercept = 50) +
+  geom_hline(yintercept = 50) +
+  geom_point(shape = 21, size = 2) +
+  geom_text_repel(data = subset(dat, Label),
+                  label = rownames(subset(dat, Label)) ) +
+  scale_fill_gradient2(low = "dodgerblue", mid = "white", 
+                       midpoint = log2(50*50), high = "firebrick3", 
+                       guide = "none") +
+  theme_classic()
+```
+
+It is clear that the 2 features are very similar for all 100 samples. In fact the Pearson correlation between `FeatureX` and `FeatureY` corresponds to `r signif(cor(dat$FeatureX, dat$FeatureY, method = "pearson"), 2)`. 
+
+Here we need 2 dimensions (`X` and `Y`) to describe the relation between all 100 samples. It would be convenient if there was a way to reduce these dimensions and have less dimension to visualise the relations between the samples. In this very simple example we can reduce from 2 to only 1 dimension, but more generally PCA is really useful with multidimensional data with many features. In `R` the function `prcomp` can use to transform the data
+
+```{r calculate PCA with base R}
+mat <- as.matrix( dat[, c("FeatureX", "FeatureY")] )
+pca_data <- stats::prcomp(x = mat, retx = TRUE, center = TRUE, scale. = FALSE)
+num_components <- max(as.numeric(gsub("PC", "", colnames(pca_data$x))))
+pca_df <- as.data.frame(pca_data$x, stringsAsFactors = FALSE)
+colnames(pca_df) <- paste0("PC", 1:num_components)
+pca_df$Ratio <- dat$Ratio
+pca_df$Label <- dat$Label
+```
+
+Visualise the same data after the Principal Components Analysis.
+
+```{r Visualise simple PCA}
+ggplot(data = pca_df, aes(PC1, PC2, fill = Ratio)  ) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  geom_point(shape = 21, size = 2) +
+  coord_cartesian(xlim = c(-50, 50), ylim = c(-50, 50)) +
+  geom_text_repel(data = subset(pca_df, Label ),
+                  label = rownames(subset(pca_df, Label) ) ) +
+  scale_fill_gradient2(low = "dodgerblue", mid = "white", 
+                       midpoint = log2(50*50), high = "firebrick3", 
+                       guide = "none") +
+  theme_classic()
+```
+The plot above shows how the principal component 1 (PC1) can separate all the samples in the same was as `FeatureX` and `FeatureY` did in the previous plot. Using the sample names (text next to the dots) and the colours in the plot you can see how the samples moved between the two plots. Now the PC1 explains most of the variance in the data while retaining as much as possible the variation in the data set. As you can see the transformation on the principal component is linear. In the plot you also see the principal component 2 (PC2) that does not really explain much variance between the samples, this is because the principal components are uncorrelated and ordered, meaning that the first few PC's contain most of the variance in the original dataset. 
+
+To manually calculate a PCA without using basic R function needs first to scale the matrix
+```{r scale the matrix}
+scld_mat <- scale(mat, center = TRUE, scale = FALSE)
+```
+In this way the each Feature (`X` and `Y`) will have a mean of zero across all samples
+```{r show scaled matrix mean}
+round(mean(scld_mat[, "FeatureX"]), 3) 
+round(mean(scld_mat[, "FeatureY"]), 3)
+```
+
+As we saw above the PCA transformation consisted in rotating the axes which, mathematically speaking, is a matrix multiplication step. If we would like to rotate by an $\alpha$ angle the rotation matrix is:
+$$ R = \begin{bmatrix} cos\alpha & -\sin\alpha \\ \sin\alpha & \cos\alpha \\ \end{bmatrix}$$
+
+In the simple case of above it is fair to assume that $\alpha = 45^\circ$. 
+In general terms the right angle to transform the data that one has to look for has been shown to correspond to the eigenvector corresponding to the largest eigenvalue calculated on the covariance matrix. Some people prefer to use the correlation matrix, rather than the covariance matrix. For the following example I'll use the covariance `cov()` as it is the same one used by `prcomp`. 
+
+```{r covariance and eigenvectors}
+cov_mat <- cov(scld_mat)
+eig <- eigen(cov_mat)
+R <- eig$vectors
+R
+```
+
+In `R` the matrix multiplication symbol is defined as ` %*%`
+```{r}
+rotated_mat <- scld_mat %*% R
+```
+
+```{r}
+rotated_df <- as.data.frame(rotated_mat)
+colnames(rotated_df) <- c("PC1", "PC2")
+rotated_df$Ratio <- dat$Ratio
+rotated_df$Label <- dat$Label
+
+
+ggplot(data = rotated_df, aes(PC1, PC2, fill = Ratio)  ) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  geom_point(shape = 21, size = 2) +
+  coord_cartesian(xlim = c(-50, 50), ylim = c(-50, 50)) +
+  geom_text_repel(data = subset(rotated_df, Label ),
+                  label = rownames(subset(rotated_df, Label) ) ) +
+  scale_fill_gradient2(low = "dodgerblue", mid = "white", 
+                       midpoint = log2(50*50), high = "firebrick3", 
+                       guide = "none") +
+  theme_classic()
+
+```
+
+The sign of the rotation (direction of the transformation) is arbitrary, it can differ between different programs for PCA.
+
+We can see that the eigenvector `R` of the covariance matrix is around `0.65` and `0.75` and not exactly $45^\circ$ or $\pi/4$ as those corresponds to the same value `r round(sin(pi/4), 3)` and `r round(cos(pi/4), 3)`. By knowing the eigenvector we can calculate the rotation angle with:
+```{r  real rotation angle}
+cos_alpha <-  R[1,1]
+round(180 * acos(cos_alpha) / pi, 3)
+```
+
+Which is still very close to $45^\circ$.
+
+## Some theory with formulas
+
+As we saw, the first step of the PCA consists in calculating the covariance between X and Y which is defined as:
+$$ Cov(X,Y) = \frac{ \sum (x_i - \overline{x}) \times (y_i - \overline{y}) } { N -1}$$
+Then the new coordinate system can be optaine with:
+
+$$ R = X \cdot eigen(Cov(X,Y)) $$
+Eigenvalues $${\lambda}_i$$ 
+
+and eigenvector $$\overline{x}_i$$
+
+# My function
+The inspiration for writing the `showme_PCA2D()` function comes from the `pheatmap` function (from the `R` package `pheatmap`) to plot nice looking heatmaps with minimal effort. 
+
+```{r import my R package, echo = FALSE}
+library(niar)
+showme_PCA2D(mat)
+```
+
+With this very simple line the function performs all the PCA analysis and plotting in the background. On top of that the function is enriched with lot of other paramenter that allow for filtering, labelling, adding metadata, exploring the loadings and more.
+
+## Example with dummy data
+To showcase most of the capabilities of this function let's look up a matrix of 10 samples with 15000 features that follow a negative binomial distribution (`rnbinom`). 
+Let's assume that these features are genes and give them random names.
+```{r}
+set.seed(16)
+n <- 15000
+sapply(1:n, function(x) {
+  x <- paste0(c(sample(LETTERS, 1, replace = TRUE),
+      tolower(sample(LETTERS, 4, replace = TRUE)),
+      sample(1:9, 1, replace = TRUE)), collapse = "") } 
+  ) -> rows_IDs
+
+j <- length(unique(rows_IDs))
+```
+
+Let's now generate a count matrix with 10 mRNA-seq samples.
+```{r}
+data.frame(Sample1 = rnbinom(n = j, mu = 400, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample2 = rnbinom(n = j, mu = 395, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample3 = rnbinom(n = j, mu = 396, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample4 = rnbinom(n = j, mu = 397, size = 4)*rnorm(n = 1, mean = 2, sd = 0.5),
+           Sample5 = rnbinom(n = j, mu = 430, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample6 = rnbinom(n = j, mu = 450, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample7 = rnbinom(n = j, mu = 420, size = 5)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample8 = rnbinom(n = j, mu = 410, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample9 = rnbinom(n = j, mu = 400, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           Sample0 = rnbinom(n = j, mu = 390, size = 6)*rnorm(n = 1, mean = 2, sd = 0.5), 
+           stringsAsFactors = FALSE, 
+           row.names = unique(rows_IDs) ) -> df
+mat <- as.matrix(df)
+```
+
+To simplify things we can scale the matrix 
+```{r}
+mat <- log2(mat)
+```
+
+Now the do a PCA it's super easy!
+```{r}
+showme_PCA2D(mat)
+```
+
+Show extra plots, also easy!
+```{r}
+showme_PCA2D(mat = mat, show_variance = TRUE, show_stats = TRUE)
+```
+
+Checking loadings real quick? Very easy!
+```{r}
+showme_PCA2D(mat = mat, n_loadings = 12)
+```
+
+What to show extra info on the plot? Make a metadata dataframe.
+```{r}
+data.frame(sample_name = paste0("Sample", 0:9),
+           replicate = c(rep(c(1:3), 3), 1), 
+           condition = c(rep("A", 5), rep("Z", 5)),
+           stringsAsFactors = FALSE) -> mt
+```
+
+Now specify the metadata with `mt` and the dataframe colum with the `mat` column names with `mcol` and now the extra info can be used to colour and label the points.
+```{r}
+showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
+             m_label = "replicate", m_fill = "condition")
+```
+
+Select top rows to use for PCA.
+```{r}
+showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
+             n_top_var = 40, m_fill = "replicate", m_label = F)
+```
+
+Do not use realistic aspect ratio.
+```{r}
+showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", 
+             m_fill = "replicate", x = 1, y = 3,
+             show_stats = F, m_label = F, 
+             real_aspect_ratio = F)
+```
+
+### FAQ
+
+Why the underlying function to calculate a PCA is `prcomp()` and not `princomp()`?
+The `princomp()` function uses the `eigen()` function to carry out the analysis on the covariance matrix or correlation matrix. Instead `prcomp()` uses a technique called singular value decomposition (SVD), which has greater numerical accuracy. However `princomp()` function is useful when you don’t have access to the original data (`mat`), but you do have a covariance or correlation matrix.
