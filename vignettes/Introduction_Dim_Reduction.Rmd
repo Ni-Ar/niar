@@ -152,17 +152,19 @@ Which is still very close to $45^\circ$.
 
 As we saw, the first step of the PCA consists in calculating the covariance between X and Y which is defined as:
 $$ Cov(X,Y) = \frac{ \sum (x_i - \overline{x}) \times (y_i - \overline{y}) } { N -1}$$
-Then the new coordinate system can be optaine with:
+Then the new coordinate system from a scaled matrix `X` can be obtaine with:
 
-$$ R = X \cdot eigen(Cov(X,Y)) $$
+$$ R = X \cdot \overline{x}_i Cov(X,Y) $$
 Eigenvalues $${\lambda}_i$$ 
 
-and eigenvector $$\overline{x}_i$$
+Eigenvector $$\overline{x}_i$$
+
+(To be finished)
 
 # My function
 The inspiration for writing the `showme_PCA2D()` function comes from the `pheatmap` function (from the `R` package `pheatmap`) to plot nice looking heatmaps with minimal effort. 
 
-```{r import my R package, echo = FALSE}
+```{r import my R package, echo = T, eval = FALSE}
 library(niar)
 showme_PCA2D(mat)
 ```
@@ -207,22 +209,22 @@ mat <- log2(mat)
 ```
 
 Now the do a PCA it's super easy!
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat)
 ```
 
 Show extra plots, also easy!
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat = mat, show_variance = TRUE, show_stats = TRUE)
 ```
 
 Checking loadings real quick? Very easy!
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat = mat, n_loadings = 12)
 ```
 
 What to show extra info on the plot? Make a metadata dataframe.
-```{r}
+```{r, echo = T, eval = FALSE}
 data.frame(sample_name = paste0("Sample", 0:9),
            replicate = c(rep(c(1:3), 3), 1), 
            condition = c(rep("A", 5), rep("Z", 5)),
@@ -230,19 +232,19 @@ data.frame(sample_name = paste0("Sample", 0:9),
 ```
 
 Now specify the metadata with `mt` and the dataframe colum with the `mat` column names with `mcol` and now the extra info can be used to colour and label the points.
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
              m_label = "replicate", m_fill = "condition")
 ```
 
 Select top rows to use for PCA.
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", x = 1, y = 3,
              n_top_var = 40, m_fill = "replicate", m_label = F)
 ```
 
 Do not use realistic aspect ratio.
-```{r}
+```{r, echo = T, eval = FALSE}
 showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", 
              m_fill = "replicate", x = 1, y = 3,
              show_stats = F, m_label = F, 
