@@ -42,7 +42,8 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   if( missing(mt) ){
     # warning("You didn't specify a metadata!")
     if (is.null(colnames(mat))) {
-      colnames(mat) <- LETTERS[1:ncol(mat)]
+      # If matrix doesn't have colnames create an increasing alphanumeric string
+      colnames(mat) <- paste0(LETTERS, 1:ncol(mat))
     }
     # Create a simple one with just the matrix column names
     mt <- data.frame(mat_col = colnames(mat), stringsAsFactors = F)
