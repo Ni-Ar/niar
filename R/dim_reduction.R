@@ -8,14 +8,14 @@
 #' @param m_fill Character specifying one column name of `mt` to use for colouring the samples.
 #' @param m_label Character or logical specifying one column name of `mt` to use for labelling the points in the PCA. Set to `FALSE` for omitting labels in plot.
 #' @param n_top_var Integer: Number of most variable matrix rows to use for `prcomp`.
+#' @param filt_mat Logical. Whether or not to remove certain rows from `mat` that contain to many `NA`. See `NA_filt_thrshld` to specify the threshold for removing.
+#' @param NA_filt_thrshld Integer between 0 and 1: maximum % of NA accepted on `mat` rows. 
 #' @param show_variance Logical. Show an extra plot with the variance on each component.
 #' @param show_stats Logical. Show an extra plot with the summary statistics for the data in `mat`.
-#' @param filt_mat Logical. Whether or not to remove certain rows `mat` that contain to many `NA`. See `NA_filt_thrshld` to specify the threshold for removing.
-#' @param NA_filt_thrshld Integer between 0 and 1: maximum % of NA accepted on `mat` rows. 
 #' @param n_loadings Integer indicating how many top and bottom loadings to plot.
-#' @param return_data Logical. If `TRUE` returns data for plot instead of plot.
-#' @param real_aspect_raio Logical. If `TRUE` represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .
-#' @param ... Set extra parameter for the `prcomp` function like `scale.` (default FALSE) and `center` (default TRUE).
+#' @param return_data Logical. If `TRUE` returns rotated data used for plotting instead of the actual plot. Can be used with `n_loadings` equal to any positive integer to return all components loadings.
+#' @param real_aspect_raio Logical. If `TRUE` represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .
+#' @param ... Set extra parameter for the `prcomp` function like `scale.` (default `FALSE`) and `center` (default `TRUE`).
 #'
 #' @return Either a plot (created with `ggplot2`), a combination of plots ( created with `patchwork`) or a `data.frame`. 
 #' @export

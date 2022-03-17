@@ -40,7 +40,7 @@ showme_PCA2D(
 
 \item{n_top_var}{Integer: Number of most variable matrix rows to use for \code{prcomp}.}
 
-\item{filt_mat}{Logical. Whether or not to remove certain rows \code{mat} that contain to many \code{NA}. See \code{NA_filt_thrshld} to specify the threshold for removing.}
+\item{filt_mat}{Logical. Whether or not to remove certain rows from \code{mat} that contain to many \code{NA}. See \code{NA_filt_thrshld} to specify the threshold for removing.}
 
 \item{NA_filt_thrshld}{Integer between 0 and 1: maximum \% of NA accepted on \code{mat} rows.}
 
@@ -50,11 +50,11 @@ showme_PCA2D(
 
 \item{n_loadings}{Integer indicating how many top and bottom loadings to plot.}
 
-\item{return_data}{Logical. If \code{TRUE} returns data for plot instead of plot.}
+\item{return_data}{Logical. If \code{TRUE} returns rotated data used for plotting instead of the actual plot. Can be used with \code{n_loadings} equal to any positive integer to return all components loadings.}
 
-\item{...}{Set extra parameter for the \code{prcomp} function like \code{scale.} (default FALSE) and \code{center} (default TRUE).}
+\item{...}{Set extra parameter for the \code{prcomp} function like \code{scale.} (default \code{FALSE}) and \code{center} (default \code{TRUE}).}
 
-\item{real_aspect_raio}{Logical. If \code{TRUE} represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .}
+\item{real_aspect_raio}{Logical. If \code{TRUE} represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .}
 }
 \value{
 Either a plot (created with \code{ggplot2}), a combination of plots ( created with \code{patchwork}) or a \code{data.frame}.
