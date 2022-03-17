@@ -101,19 +101,10 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   if (any(per100Var == 0)) {
     
     # If the number of components with zero variance are more than 30% of all
-    # computed components print a warning
+    # computed components print a message
     if(length(which(per100Var == 0)) >= round(length(per100Var) * 0.3, 0)) {
-      warning("Components: ", paste(which(per100Var == 0), collapse = ", "), 
-              " explain zero variance in the data! Maybe consider transforming",
-              " the values in your matrix before PCA?")
-    } 
-    
-    # If the number of components with zero variance are more than 70% of all
-    # computed components; force to show variance
-    if(length(which(per100Var == 0)) >= round(length(per100Var) * 0.7, 0)) {
-      warning("The majority of the data variance is explained only in the ",
-              "the top components. Forcing you to have a look at the variance.")
-      show_variance <- TRUE
+      message("Components: ", paste(which(per100Var == 0), collapse = ", "), 
+              " explain zero variance in the data!")
     }
   }
   
