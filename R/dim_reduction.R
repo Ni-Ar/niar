@@ -6,7 +6,7 @@
 #' @param mt `data.frame` containing `mat` additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters. When not specified the function will create a simple metadata based on the `mat` column names.
 #' @param mcol Character specifying one column of `mt` that contains the matrix column names.
 #' @param m_fill Character specifying one column name of `mt` to use for colouring the samples.
-#' @param m_label Character or logical specifying one column name of `mt` to use for labelling the points in the PCA. Set to `FALSE` for omitting labels in plot.
+#' @param m_label Character or logical specifying one column name of `mt` to use for labelling the points in the PCA. Set to `FALSE` (default) for omitting labels in plot. Use `'mat_col'` if `mt` is not defined but you want to use the `mat` column names for labelling.
 #' @param n_top_var Integer: Number of most variable matrix rows to use for `prcomp`.
 #' @param filt_mat Logical. Whether or not to remove certain rows from `mat` that contain to many `NA`. See `NA_filt_thrshld` to specify the threshold for removing.
 #' @param NA_filt_thrshld Integer between 0 and 1: maximum % of NA accepted on `mat` rows. 
@@ -14,7 +14,7 @@
 #' @param show_stats Logical. Show an extra plot with the summary statistics for the data in `mat`.
 #' @param n_loadings Integer indicating how many top and bottom loadings to plot.
 #' @param return_data Logical. If `TRUE` returns rotated data used for plotting instead of the actual plot. Can be used with `n_loadings` equal to any positive integer to return all components loadings.
-#' @param real_aspect_raio Logical. If `TRUE` represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .
+#' @param real_aspect_raio Logical. If `TRUE` (deafault) represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus `TRUE` normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .
 #' @param ... Set extra parameter for the `prcomp` function like `scale.` (default `FALSE`) and `center` (default `TRUE`).
 #'
 #' @return Either a plot (created with `ggplot2`), a combination of plots ( created with `patchwork`) or a `data.frame`. 
@@ -28,7 +28,7 @@
 #'              
 #' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)              
 showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol, 
-                         m_fill = mcol, m_label = mcol, 
+                         m_fill = mcol, m_label = FALSE, 
                          n_top_var = 250, filt_mat = FALSE, 
                          NA_filt_thrshld = 0.95, show_variance = FALSE, 
                          show_stats = FALSE, n_loadings = NULL, 
@@ -205,12 +205,13 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
                 "\nSetting PCA plot aspect ratio to 1.")
         plot_aspect_ratio <- 1
       }
+      p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )  
     } else if (real_aspect_ratio == FALSE ) {
-      plot_aspect_ratio <- 1
+      p_pca <- p_pca + coord_cartesian(clip = "off")  
     } else { 
       stop("real_aspect_ratio must be a logical! Either TRUE or FALSE)")
     }
-    p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )     
+    # p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )     
     
     # --- Plot PCA Loadings
     if ( !is.null(n_loadings) ) {
@@ -256,8 +257,8 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
     # --- Plot Summary Statistics
     if ( show_stats ) {
-      # require('tidyr')
-      # require('dplyr')
+      require('tidyr')
+      require('dplyr')
       # Suppress summarise info
       options(dplyr.summarise.inform = FALSE)
       as.data.frame(mat) %>%
