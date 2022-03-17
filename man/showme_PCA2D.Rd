@@ -12,7 +12,7 @@ showme_PCA2D(
   mcol,
   m_fill = mcol,
   m_label = mcol,
-  n_top_var = 100,
+  n_top_var = 250,
   filt_mat = FALSE,
   NA_filt_thrshld = 0.95,
   show_variance = FALSE,
@@ -26,21 +26,21 @@ showme_PCA2D(
 \arguments{
 \item{mat}{A matrix}
 
-\item{x}{Integer indicating principal component on X-axis. Defaul 1}
+\item{x}{Integer indicating principal component on X-axis. Default 1.}
 
-\item{y}{Integer indicating principal component on Y-axis. Default x + 1}
+\item{y}{Integer indicating principal component on Y-axis. Default \code{x + 1}.}
 
-\item{mt}{Dataframe: contains matrix columns additional information, if not provided plot can't be labelled nor coloured according to specific information.}
+\item{mt}{\code{data.frame} containing \code{mat} additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters.}
 
-\item{mcol}{Character pointing one column of metadata that contains the matrix column names}
+\item{mcol}{Character specifying one column of \code{mt} that contains the matrix column names.}
 
-\item{m_fill}{Character pointing one column of metadata specifying how to colour the samples.}
+\item{m_fill}{Character specifying one column name of \code{mt} to use for colouring the samples.}
 
-\item{m_label}{Character pointing one column of metadata specifying how to label the points in the PCA. Set to FALSE for omitting labels in plot.}
+\item{m_label}{Character or logical specifying one column name of \code{mt} to use for labelling the points in the PCA. Set to \code{FALSE} for omitting labels in plot.}
 
-\item{n_top_var}{Integer: Number of most variable matrix rows to use for \code{prcomp}}
+\item{n_top_var}{Integer: Number of most variable matrix rows to use for \code{prcomp}.}
 
-\item{filt_mat}{Logical. Fil}
+\item{filt_mat}{Logical. Whether or not to remove certain rows \code{mat} that contain to many \code{NA}. See \code{NA_filt_thrshld} to specify the threshold for removing.}
 
 \item{NA_filt_thrshld}{Integer between 0 and 1: maximum \% of NA accepted on \code{mat} rows.}
 
@@ -48,16 +48,16 @@ showme_PCA2D(
 
 \item{show_stats}{Logical. Show an extra plot with the summary statistics for the data in \code{mat}.}
 
-\item{n_loadings}{Integer indicating how many top and bottom loadings to plot}
+\item{n_loadings}{Integer indicating how many top and bottom loadings to plot.}
 
 \item{return_data}{Logical. If \code{TRUE} returns data for plot instead of plot.}
 
 \item{...}{Set extra parameter for the \code{prcomp} function like \code{scale.} (default FALSE) and \code{center} (default TRUE).}
 
-\item{real_aspect_raio}{Logical. If \code{TRUE} represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2}
+\item{real_aspect_raio}{Logical. If \code{TRUE} represent the distances between samples as faithfully as possible. Take into account that the second eigenvalue is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant eigenvalue ratio only of the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .}
 }
 \value{
-Either a plot, a combination of plots or a dataframe.
+Either a plot (created with \code{ggplot2}), a combination of plots ( created with \code{patchwork}) or a \code{data.frame}.
 }
 \description{
 Given a matrix show me the principal components and other neat things.
