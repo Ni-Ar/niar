@@ -3,7 +3,7 @@
 #' @param mat A matrix 
 #' @param x Integer indicating principal component on X-axis. Default 1.
 #' @param y Integer indicating principal component on Y-axis. Default `x + 1`.
-#' @param mt `data.frame` containing `mat` additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters.
+#' @param mt `data.frame` containing `mat` additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters. When not specified the function will create a simple metadata based on the `mat` column names.
 #' @param mcol Character specifying one column of `mt` that contains the matrix column names.
 #' @param m_fill Character specifying one column name of `mt` to use for colouring the samples.
 #' @param m_label Character or logical specifying one column name of `mt` to use for labelling the points in the PCA. Set to `FALSE` for omitting labels in plot.
@@ -86,7 +86,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     mat <- mat[, good_cols]
   }
   
-  # ---- Perform Principal Componet Analysis
+  # ---- Perform Principal Component Analysis
   # calculate the variance for each row
   row_vars <- matrixStats::rowVars(mat)
   
@@ -102,15 +102,15 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     
     # If the number of components with zero variance are more than 30% of all
     # computed components print a warning
-    if( length(which(per100Var == 0)) >= round(length(per100Var) * 0.3, 0)) {
+    if(length(which(per100Var == 0)) >= round(length(per100Var) * 0.3, 0)) {
       warning("Components: ", paste(which(per100Var == 0), collapse = ", "), 
-              " explain zero variance in the data! ", 
-              "Consider transforming the values in your matrix before PCA. ")
+              " explain zero variance in the data! Maybe consider transforming",
+              " the values in your matrix before PCA?")
     } 
     
     # If the number of components with zero variance are more than 70% of all
-    # computed components force to show variance
-    if( length(which(per100Var == 0)) >= round(length(per100Var) * 0.7, 0)) {
+    # computed components; force to show variance
+    if(length(which(per100Var == 0)) >= round(length(per100Var) * 0.7, 0)) {
       warning("The majority of the data variance is explained only in the ",
               "the top components. Forcing you to have a look at the variance.")
       show_variance <- TRUE
@@ -149,18 +149,18 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     warning("Lowering y: there are only ", num_components, " components!\n",
             "Now y = ", y, " and x = ", x) 
   }
-  # quick sanity check
+  # Quick check
   if(num_components != length(per100Var)) { stop('Check num components found') }
   
   # Add info column for joining
   pca_df <- as.data.frame(pca_data$x, stringsAsFactors = F)
   colnames(pca_df) <- paste0("PC", 1:num_components)
-  
   pca_df[, mcol] <- rownames(pca_df)
   rownames(pca_df) <- NULL
-  pca_df <- dplyr::left_join(x = pca_df, y = mt, by = mcol)
+  # Add metadata to the rotated data
+  pca_df <- dplyr::left_join(x = pca_df, y = mt, by = mcol) 
   
-  # Check mcol for colouring plot is in the metadata
+  # Check that mcol for colouring plot is in the metadata
   if( !any(colnames(pca_df) == mcol) ){
     stop("The 'mcol' character is not a 'mt' column.\n",
          "Check for yourself: ", mcol, " is not in ",
@@ -169,15 +169,15 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   
   # ---- Return data of plot the PCA
   if (return_data) {
-    # if not plotting loadings return the PCA points coordinates
     if ( is.null(n_loadings) ) {
+      # if not plotting loadings return the PCA points coordinates
       return(pca_df) 
-      # if number of loadings it not NULL return the loadings dataframe
     } else if ( !is.null(n_loadings) ) {
+      # if number of loadings it not NULL return the loadings dataframe
       all_loadings_df <- as.data.frame(pca_data$rotation, stringsAsFactors = F)
       return(all_loadings_df)
     } else {
-      stop("There's something wrong with the loadings...")
+      stop("There's something wrong with returning the loadings data...")
     }
   } else {
     require('magrittr')
@@ -198,12 +198,12 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
             panel.border = element_blank(),
             plot.background = element_blank()) -> p_pca
     
-    # ---- Add labels to points
+    # ---- Plot PCA: add labels to points
     if (m_label != FALSE) {
       p_pca <- p_pca +
         ggrepel::geom_text_repel(aes(label = pca_df[, m_label] ) )
     }
-    # ---- Visualise the PCA realistic aspect ratio 
+    # ---- Plot PCA: plot with a realistic aspect ratio 
     # https://figshare.com/articles/figure/Aspect_ratio_for_PCA_plots_/8301197/1
     if (real_aspect_ratio == TRUE) {
       plot_aspect_ratio <- round(per100Var[y] / per100Var[x], 1)
@@ -221,7 +221,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
     p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )     
     
-    # --- Plot PCA loadings
+    # --- Plot PCA Loadings
     if ( !is.null(n_loadings) ) {
       require('dplyr')
       require('forcats')
@@ -263,7 +263,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
               panel.border = element_blank(),
               plot.background = element_blank()) -> p_loadings
     }
-    
+    # --- Plot Summary Statistics
     if ( show_stats ) {
       # require('tidyr')
       # require('dplyr')
@@ -280,17 +280,18 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
         tidyr::pivot_longer( cols = !matches("name"), 
                              names_to = "summary_stats") %>%
         ggplot2::ggplot(aes(y = summary_stats, x = value, fill = summary_stats)) +
+        geom_boxplot(show.legend = F) + 
         scale_x_log10() +
-        geom_boxplot(show.legend = F) + labs(y = "Stats of columns in mat",
-                                             x = "") +
+        labs(y = "Stats of columns in mat") +
         theme_bw() + 
         theme(axis.text = element_text(colour = "black"),
               axis.line = element_line(color = 'black'),
+              axis.title.x = element_blank(),
               panel.border = element_blank(), 
               panel.background = element_blank(),
               plot.background = element_blank()) -> p_stats
     }
-    
+    # --- Decide what plots to return
     if ( all( show_variance & show_stats ) ) {
       require('patchwork')
       (p_variance + p_stats ) / p_pca
@@ -300,7 +301,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     } else if ( show_stats ) {
       require('patchwork')
       p_stats + p_pca
-    } else if ( all(!is.null(n_loadings) & show_stats == F & show_variance == F))  {
+    } else if ( all(!is.null(n_loadings) & show_stats == F & show_variance == F)) {
       p_loadings
     } else {
       p_pca
