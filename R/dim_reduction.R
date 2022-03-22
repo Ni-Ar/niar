@@ -18,6 +18,18 @@
 #' @param ... Set extra parameter for the `prcomp` function like `scale.` (default `FALSE`) and `center` (default `TRUE`).
 #'
 #' @return Either a plot (created with `ggplot2`), a combination of plots ( created with `patchwork`) or a `data.frame`. 
+#' 
+#' @import ggplot2
+#' @import magrittr
+#' @import patchwork
+#' @importFrom stats prcomp
+#' @importFrom matrixStats rowVars
+#' @importFrom dplyr left_join mutate arrange group_by summarise
+#' @importFrom tidyr pivot_longer
+#' @importFrom forcats fct_reorder
+#' @importFrom scales number_format
+#' @importFrom ggrepel geom_text_repel
+#' 
 #' @export
 #'
 #' @examples
@@ -110,7 +122,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   }
   
   if (show_variance) {
-    require('ggplot2')
+    # require('ggplot2')
     ggplot2::qplot(data = as.data.frame(per100Var), geom = "col", 
                    x = as.numeric(rownames(as.data.frame(per100Var))),
                    y = per100Var, show.legend = F,
@@ -172,9 +184,9 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
       stop("There's something wrong with returning the loadings data...")
     }
   } else {
-    require('magrittr')
-    require('ggplot2')
-    require('ggrepel')
+    # require('magrittr')
+    # require('ggplot2')
+    # require('ggrepel')
     # ---- Plot PCA
     ggplot2::ggplot(data = pca_df) +
       aes(x = pca_df[, x], y = pca_df[, y], fill = pca_df[, m_fill] ) +
@@ -216,9 +228,9 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     
     # --- Plot PCA Loadings
     if ( !is.null(n_loadings) ) {
-      require('dplyr')
-      require('forcats')
-      require('scales')
+      # require('dplyr')
+      # require('forcats')
+      # require('scales')
       if (n_loadings > length(pca_data$rotation[, x]) ) {
         warning("Don't ask for more loading to plot than what there ", 
                 "actually are.\n", "Loadings in input matrix: ", 
@@ -258,8 +270,8 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
     # --- Plot Summary Statistics
     if ( show_stats ) {
-      require('tidyr')
-      require('dplyr')
+      # require('tidyr')
+      # require('dplyr')
       # Suppress summarise info
       options(dplyr.summarise.inform = FALSE)
       as.data.frame(mat) %>%
@@ -286,13 +298,13 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
     # --- Decide what plots to return
     if ( all( show_variance & show_stats ) ) {
-      require('patchwork')
+      # require('patchwork')
       (p_variance + p_stats ) / p_pca
     } else if ( show_variance ) {
-      require('patchwork')
+      # require('patchwork')
       p_variance + p_pca
     } else if ( show_stats ) {
-      require('patchwork')
+      # require('patchwork')
       p_stats + p_pca
     } else if ( all(!is.null(n_loadings) & show_stats == F & show_variance == F)) {
       p_loadings

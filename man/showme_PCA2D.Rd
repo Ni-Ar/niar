@@ -11,7 +11,7 @@ showme_PCA2D(
   mt,
   mcol,
   m_fill = mcol,
-  m_label = mcol,
+  m_label = FALSE,
   n_top_var = 250,
   filt_mat = FALSE,
   NA_filt_thrshld = 0.95,
@@ -30,13 +30,13 @@ showme_PCA2D(
 
 \item{y}{Integer indicating principal component on Y-axis. Default \code{x + 1}.}
 
-\item{mt}{\code{data.frame} containing \code{mat} additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters.}
+\item{mt}{\code{data.frame} containing \code{mat} additional information (i.e. metadata). Not required but necessary if one wants label or colour according to specific parameters. When not specified the function will create a simple metadata based on the \code{mat} column names.}
 
 \item{mcol}{Character specifying one column of \code{mt} that contains the matrix column names.}
 
 \item{m_fill}{Character specifying one column name of \code{mt} to use for colouring the samples.}
 
-\item{m_label}{Character or logical specifying one column name of \code{mt} to use for labelling the points in the PCA. Set to \code{FALSE} for omitting labels in plot.}
+\item{m_label}{Character or logical specifying one column name of \code{mt} to use for labelling the points in the PCA. Set to \code{FALSE} (default) for omitting labels in plot. Use \code{'mat_col'} if \code{mt} is not defined but you want to use the \code{mat} column names for labelling.}
 
 \item{n_top_var}{Integer: Number of most variable matrix rows to use for \code{prcomp}.}
 
@@ -54,7 +54,7 @@ showme_PCA2D(
 
 \item{...}{Set extra parameter for the \code{prcomp} function like \code{scale.} (default \code{FALSE}) and \code{center} (default \code{TRUE}).}
 
-\item{real_aspect_raio}{Logical. If \code{TRUE} represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .}
+\item{real_aspect_raio}{Logical. If \code{TRUE} (deafault) represent the distances between samples as faithfully as possible. Take into account that the second component is always smaller than the first, sometimes considerably so, thus \code{TRUE} normalize the axis aspect ratio to the relevant ratio for the PCA plot. Adapted from by: https://f1000research.com/articles/5-1492/v2 .}
 }
 \value{
 Either a plot (created with \code{ggplot2}), a combination of plots ( created with \code{patchwork}) or a \code{data.frame}.
