@@ -27,7 +27,18 @@ Then just load the package (from my local repository on the CRG cluster) with:
 devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
 ```
 
-Which should not throw you an error if all the dependencies are already in the `.libPaths()`. Once you log out of your R session the functions of the R package won’t be availbale anymore.
+Which should not throw you an error if all the dependencies are already in the `.libPaths()`. Once you log out of your R session the functions of the R package won’t be availbale anymore. 
+
+In order to visualise the plots you might need to select the right graphics device, especially if you get an error that says something like:
+
+```R
+Error in diff.default(from) : 
+  Shadow graphics device error: r error 4 (R code execution error)
+In grDevices:::png("/tmp/Rtmp....",  :
+  unable to open connection to X11 display ''
+```
+
+To solve this go to: Tools Menu (on top of the windos) > Global Options > General section > Graphics tab > and in the Graphic Device Backend drop down menu select `Cairo` and then click “Apply”. Now the plots should be correctly displayed.
 
 ## Examples
 
