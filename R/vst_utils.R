@@ -258,7 +258,7 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
 #'
 #' @return A character
 #'
-#' @import stringr str_extract
+#' @importFrom stringr str_extract
 #' @export
 #'
 #' @examples
