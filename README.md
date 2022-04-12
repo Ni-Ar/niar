@@ -1,6 +1,6 @@
 # My personal `R` package
 
-Here, I collect R functions that I’ve created over time. This is not really stable or robust, the primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. Feedback is welcome! If you find an error please [open a github issue](https://github.com/Ni-Ar/niar/issues/new).
+Here, I collect R functions that I’ve created over time. This is not really stable or robust, the primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. Feedback is welcome! If you find an error please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new).
 
 ## Installation
 

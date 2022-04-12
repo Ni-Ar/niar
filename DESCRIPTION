@@ -21,5 +21,6 @@ Imports:
 	magrittr (>= 2.0.2)
 Suggests: 
     rmarkdown,
-    knitr
+    knitr,
+    rlang (>= 1.0.0)
 VignetteBuilder: knitr
