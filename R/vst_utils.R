@@ -307,7 +307,7 @@ guess_species <- function(vastid, latin_name = F) {
 #' @examples
 #' #' grep_psi(path_to_vst_tbl, vst_id) %>%
 #'     tidy_vst_psi()
-grep_psi <- function(inclusion_tbl, vst_id, tmp_dir, verbose = TRUE, 
+grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = TRUE, 
                      clear_tmp = TRUE, fast_grep = TRUE, split_temp = TRUE) {
   
   # 0 -- Check params and set commands
@@ -463,9 +463,9 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir, verbose = TRUE,
 #' @examples
 #' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) %>%
 #'     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
-grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id, tmp_dir,
-                                  verbose = FALSE, clear_tmp = TRUE,
-                                  fast_grep = TRUE ) {
+grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id, 
+                                  tmp_dir = tempdir(), verbose = FALSE, 
+                                  clear_tmp = TRUE, fast_grep = TRUE ) {
   
   if ( verbose ) { message("Looking for the expression levels of: ", 
                            ensembl_gene_id)
