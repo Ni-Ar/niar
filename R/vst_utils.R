@@ -12,9 +12,10 @@
 #'
 #' @return A data.frame in long format.
 #' @import dplyr
-#' @import magrittr
+#' @importFrom magrittr extract extract2 %>%
 #' @import stringr
 #' @import tidyr
+#' 
 #' @export
 #'
 #' @examples
@@ -24,12 +25,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                          quality_col_suffix = "-Q", return_quality_scores = TRUE,
                          return_S1 = TRUE, verbose = TRUE, add_ID_col = FALSE,
                          col_ID_name = 'banana') {
-  
-  # suppressMessages( require('dplyr') )
-  # suppressMessages( require('magrittr') )
-  # suppressMessages( require('stringr') )
-  # suppressMessages( require('tidyr') )
-  
+
   if (return_S1 == TRUE & return_quality_scores == F) {
     stop("If return_S1 is true return_quality_scores must be true as well")
   }
@@ -107,7 +103,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   quality_col_suffix
   
   # Coerc factors col to character col
-  df_vast_Q <- dplyr::mutate_if(df_vast_Q, is.factor, as.character)
+  df_vast_Q <- mutate_if(df_vast_Q, is.factor, as.character)
   
   if (verbose) {
     if ( nrow(vst_psi_tbl) == nrow(df_vast_Q) ) {
@@ -151,10 +147,10 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   }
   
   # Coerc factors col to character col
-  lng_vst_psi_tbl <- dplyr::mutate_if(lng_vst_psi_tbl, is.factor, as.character)
+  lng_vst_psi_tbl <- mutate_if(lng_vst_psi_tbl, is.factor, as.character)
   
   # Merge datasets
-  tidy_vst_psi_tbl <- dplyr::left_join(lng_vst_psi_tbl, lng_vst_psi_quality_tbl,
+  tidy_vst_psi_tbl <- left_join(lng_vst_psi_tbl, lng_vst_psi_quality_tbl,
                                        by = c("GENE", "EVENT", "COORD", "LENGTH",
                                               "FullCO", "COMPLEX","Sample") )
   
@@ -190,7 +186,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     }
     
   } else if ( return_quality_scores == FALSE ) {
-    dplyr::select(tidy_vst_psi_tbl,
+    select(tidy_vst_psi_tbl,
                   c("GENE", "EVENT", "COORD", "LENGTH", "FullCO", "COMPLEX", "Sample", "PSI") ) %>%
       unique() ->  tidy_vst_psi_tbl
   } else {
