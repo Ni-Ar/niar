@@ -1,16 +1,16 @@
-#' Reshape a wide vast-tools inclusion table into a tidyverse-friendly long format table
+#' Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
 #'
-#' @param vst_psi_tbl A dataframe generated with `grep_psi()` from a vast-tools inclusion table
-#' @param num_id_cols How many first num_id_cols to consider as info/metadata/IDs of the AS event ID in the table
-#' @param num_of_Score_Types How many quality scores are present in the columns with headers ending with quality_col_suffix
+#' @param vst_psi_tbl A dataframe generated with `grep_psi()` from a vast-tools inclusion table.
+#' @param num_id_cols How many first num_id_cols to consider as info/metadata/IDs of the AS event ID in the table.
+#' @param num_of_Score_Types How many quality scores are present in the columns with headers ending with `quality_col_suffix`.
 #' @param quality_col_suffix Suffix identifying the quality control columns. Default is "-Q".
-#' @param return_quality_scores Logical. Do you want the individual scores to be returned in the output data.frame? Defaul true
-#' @param return_S1 Logical. Limit the score to be returned to only S1. Default T.
+#' @param return_quality_scores Logical. Do you want the individual scores to be returned in the output data.frame? Defaul `TRUE`.
+#' @param return_S1_only Logical. Return only the first quality score, default `TRUE`, use `FALSE` for returning ALL `num_of_Score_Types` quality scores for each event.
 #' @param verbose Print out information
-#' @param add_ID_col Logical. Do you want to add an extra col_ID_name to the output data.frame? Default false.
+#' @param add_ID_col Logical. Do you want to add an extra `col_ID_name` to the output data.frame? Default `FALSE`.
 #' @param col_ID_name Extra column that could be used to add a new identifier to the data. Default is "banana".
 #'
-#' @return A data.frame in long format.
+#' @return A reshaped data.frame in long format as tibble.
 #' @import dplyr
 #' @importFrom magrittr extract extract2 %>%
 #' @import stringr
@@ -23,11 +23,12 @@
 #'     tidy_vst_psi()
 tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                          quality_col_suffix = "-Q", return_quality_scores = TRUE,
-                         return_S1 = TRUE, verbose = TRUE, add_ID_col = FALSE,
+                         return_S1_only = TRUE, verbose = TRUE, add_ID_col = FALSE,
                          col_ID_name = 'banana') {
 
-  if (return_S1 == TRUE & return_quality_scores == F) {
-    stop("If return_S1 is true return_quality_scores must be true as well")
+  if (return_S1_only == TRUE & return_quality_scores == F) {
+    return_S1_only <- FALSE
+    # stop("If return_S1_only is TRUE return_quality_scores must be true as well")
   }
   
   # ID columns
@@ -38,6 +39,24 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                    perl = T)
   PSI_cols <- PSI_cols[-ID_cols]
   
+  # If it's a vast-tools compare table with dPSI remove it:
+  if ( any(colnames(vst_psi_tbl[PSI_cols]) == "dPSI") ) {
+    # check that dPSI is the last column
+    if (colnames(vst_psi_tbl[ncol(vst_psi_tbl)]) == "dPSI") {
+      if (verbose) { 
+        message("I see that the last column is called dPSI. ",
+                "I'm going to process this table as a vast-tools compare output table.")
+      }
+      # remove the dPSI from the PSI_cols
+      PSI_cols <- PSI_cols[-which(colnames(vst_psi_tbl[PSI_cols]) == 'dPSI' )]
+      ncol_dPSI <- which(colnames(vst_psi_tbl) == 'dPSI')
+      vst_compare_tbl <- TRUE
+    } else {
+      # This is not a vast-tools compare table with a dPSI column at the end
+      vst_compare_tbl <- FALSE
+    }
+  }
+  
   # All columns with Q information
   rgx_Q <- paste0(".*", quality_col_suffix, "$")
   Qual_cols <- grep(pattern = rgx_Q, x = colnames(vst_psi_tbl),
@@ -46,10 +65,10 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   # Check that there are the quality score columns
   if ( identical(Qual_cols, integer(0)) ) {
     stop("The input inclusion table does NOT have quality score tables! ",
-         "Can't process further is there are no columns with ending with: ",
+         "Can't process further if there are no columns with ending with: ",
          quality_col_suffix, "\n",
          "Maybe in the future I'll implement a way to handle this case. ",
-         "The tables that have these columns are the output of vast-tools combine.",
+         "The tables that have these columns are the output of vast-tools combine and compare.",
          "The tables without this columns are the output of vast-tools tidy.")
   }
   
@@ -72,7 +91,6 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   veryverbose <- FALSE
   # Initialise dataframe as vector to populate with results from different pages
   li_vast_Q_cols <- list()
-  
   # Loop through the Q columns and turn them into a dataframe
   for (i in 1:length(Qual_cols)) {
     
@@ -96,28 +114,26 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   df_vast_Q <- as.data.frame(li_vast_Q_cols)
   
   # Re-define the column names to have the code more robust in case for example
-  # the colnames start with a number. In this way I have the col names well set
+  # the column names start with a number. In this way I have the col names well set
   # And the columns can be processed well with regexes later on. 
   colnames(df_vast_Q) <- unlist(lapply(li_vast_Q_cols, function(x) names(x)))
-  
-  quality_col_suffix
   
   # Coerc factors col to character col
   df_vast_Q <- mutate_if(df_vast_Q, is.factor, as.character)
   
-  if (verbose) {
-    if ( nrow(vst_psi_tbl) == nrow(df_vast_Q) ) {
-      message("Tidying up passed sanity check point 1")
-    }else{
-      stop("Something went wrong in reshaping the data around check point 1")
+  if ( nrow(vst_psi_tbl) == nrow(df_vast_Q) ) {
+    # Merge data
+    vst_psi_tbl_Q <- cbind(vst_psi_tbl, df_vast_Q) 
+    if ( ncol(vst_psi_tbl_Q) == ncol(vst_psi_tbl) + ncol(df_vast_Q) ) {
+      if (verbose) { message("Tidying up passed sanity check point 1") }  
+    } else {
+      stop("Something went wrong in reshaping the data around check point 1B")
     }
     
+  } else {
+      stop("Something went wrong in reshaping the data around check point 1A")
   }
-  
-  # Merge data
-  vst_psi_tbl_Q <- cbind(vst_psi_tbl, df_vast_Q) 
-  # ncol(vst_psi_tbl_Q) == ncol(vst_psi_tbl) + ncol(df_vast_Q)
-  
+    
   Qual_cols_Score <- grep(pattern = "-Q_S[1-5]$", x = colnames(vst_psi_tbl_Q),
                           perl = T)
   
@@ -154,6 +170,15 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                                        by = c("GENE", "EVENT", "COORD", "LENGTH",
                                               "FullCO", "COMPLEX","Sample") )
   
+  
+  # Add back the dPSI column if present
+  if(vst_compare_tbl == TRUE) {
+    tidy_vst_psi_tbl <- left_join(tidy_vst_psi_tbl, 
+                                  vst_psi_tbl[, c(ID_cols, ncol_dPSI)],
+                                  by = c("GENE", "EVENT", "COORD", "LENGTH",
+                                         "FullCO", "COMPLEX"))
+  }
+
   if (is.numeric(tidy_vst_psi_tbl$PSI)) {
     if (verbose) { message("Tidying up passed sanity check point 3") }
   } else{
@@ -161,17 +186,17 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   }
   
   if ( any( duplicated(tidy_vst_psi_tbl) ) ) {
-    stop("Something went wrong in reshaping the data around, there are duplicates")
+    stop("Something went wrong in reshaping the data around, there are duplicates in the data.frame!")
   } else if ( !any( duplicated(tidy_vst_psi_tbl) ) ) {
     if (verbose) { message("Tidying up passed sanity check point 4") }
   } else {
     stop("Cannot check is there are duplicates is the data")
   }
   
-  if ( return_quality_scores ) {
-    # Do nothing output already has scores
+  if ( return_quality_scores == TRUE ) {
     
-    if ( return_S1 ) {
+    # Do nothing output already has scores
+    if ( return_S1_only ) {
       tidy_vst_psi_tbl <- subset(tidy_vst_psi_tbl, Quality_Score_Type == "S1")
       
       # Coerc quality scores of Score 1 to factors
@@ -186,13 +211,18 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     }
     
   } else if ( return_quality_scores == FALSE ) {
-    select(tidy_vst_psi_tbl,
-                  c("GENE", "EVENT", "COORD", "LENGTH", "FullCO", "COMPLEX", "Sample", "PSI") ) %>%
+    
+    cols_to_return <- c("GENE", "EVENT", "COORD", "LENGTH", "FullCO", "COMPLEX", "Sample", "PSI")
+      
+    if (vst_compare_tbl) {
+      cols_to_return <- c(cols_to_return, "dPSI")
+    }
+    select(tidy_vst_psi_tbl, cols_to_return) %>%
       unique() ->  tidy_vst_psi_tbl
   } else {
     stop("return_quality_scores must me a logical (TRUE or FALSE)!")
   }
-  
+
   # Add some sort of grouping/experiment name to the reshaped dataset
   if ( add_ID_col == TRUE ) {
     tidy_vst_psi_tbl$Group_Name <- col_ID_name
@@ -540,3 +570,31 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
   # 7 -- Return a tbl
   return( vst_expression_tbl )
 }
+
+
+#' Wrapper for readr::read_delim for a tab delimited table. Fastest way to read this kind of data into `R`.
+#'
+#' @param path A character vector providing the 'path/to/the/table/to/read'.
+#' @param verbose Logical. Use `TRUE` to know the table file size being read into `R`.
+#' @param ... extra info to pass to `read_delim`.
+#'
+#' @return A tibble
+#' @importFrom readr read_delim
+#' @export
+#'
+#' @examples
+#' read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") %>%
+#'    tidy_vst_psi()
+#'  
+#'    
+read_vst_tbl <- function(path, verbose = FALSE, ...) {
+  if (!file.exists(path)) { stop('Cannot find vast-tools table!\n') }
+  
+  if (verbose) {
+    message('Reading a vast-tools table of: ',
+            round(file.info(cmpr_vst_tbl)$size / 10e3, 2), ' Kbytes')
+  }
+  return(read_delim(file = path, delim = '\t', col_names = T,
+                    locale = locale(decimal_mark = "."), na = "NA", ...) )
+}
+
