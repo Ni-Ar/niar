@@ -7,7 +7,7 @@
 grep_gene_expression(
   vst_expression_tbl,
   ensembl_gene_id,
-  tmp_dir,
+  tmp_dir = tempdir(),
   verbose = FALSE,
   clear_tmp = TRUE,
   fast_grep = TRUE
