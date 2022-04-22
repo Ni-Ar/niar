@@ -18,7 +18,13 @@ If you have a [CRG](https://www.crg.eu/) user account, instead of installing, yo
 
 ```R
 install.packages(c('devtools', 'matrixStats', 'ggplot2', 'ggrepel', 'scales', 'patchwork',
-                   'dplyr', 'tidyr', 'forcats', 'stringr')) 
+                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager')) 
+```
+
+and the following Bioconductor packages:
+
+```R
+BiocManager::install("Biostrings")
 ```
 
 Then just load the package (from my local repository on the CRG cluster) with:
