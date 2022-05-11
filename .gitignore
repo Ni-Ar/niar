@@ -46,3 +46,4 @@ doc/*.Rmd
 ._.DS_Store
 ._*
 
+/doc/
