@@ -2,7 +2,7 @@
 #'
 #' @param species a character specifying the species to work with. Currently the supported species are:
 #' \itemize{
-#' \item{\code{hsapiens} - Human (Homo Sapiens)}
+#' \item{\code{hsapiens} - Human (Homo Sapiens) Default}
 #' \item{\code{mmusculus} - Mouse (Mus Musculus)}
 #' \item{\code{rnorvegicus} - Rat (Rattus Norvegicus)}
 #' \item{\code{ggallus} - Chicken (Gallus Gallus)}
@@ -24,6 +24,7 @@
 #' @export
 #'
 #' @examples
+#' # Human ENSEMBL biomaRT object
 #' ensembl <- gimme_mart()
 gimme_mart <- function( species = "hsapiens", latest = TRUE, 
                         use_mirror = FALSE, which_mirror, out_dir = FALSE, 
@@ -55,7 +56,7 @@ gimme_mart <- function( species = "hsapiens", latest = TRUE,
   }
   
   # ---- Make Biomart object
-  ensembl <- useMart(dataset = "ensembl")
+  ensembl <- useMart(biomart = "ensembl")
   datasets <- listDatasets(ensembl)
   DB_versions <- listEnsemblArchives()
   
@@ -140,7 +141,7 @@ gimme_mart <- function( species = "hsapiens", latest = TRUE,
     ensembl <- useEnsembl(biomart = "ensembl", 
                           dataset = species_ensembl, 
                           version = DB_v, 
-                          host = "www.ensembl.org")
+                          host = "https://www.ensembl.org")
   }
   
   # -- Write output or keep in the environment
@@ -189,7 +190,14 @@ gimme_mart <- function( species = "hsapiens", latest = TRUE,
 #' @examples
 #' ensembl <- gimme_mart()
 #' ensembl_id_2_gene_name("ENSG00000000003")
-#' # TSPAN6
+#' "TSPAN6"
+#' # Example with mouse ensembl
+#' ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+#'                       out_dir = F, verbose = T)
+#' ensembl_id_2_gene_name("ENSMUSG00000067377", only_gene_name = F)
+#'      ensembl_gene_id external_gene_name chromosome_name start_position   gene_biotype
+#' 1 ENSMUSG00000067377             Tspan6               X      132791817 protein_coding
+#'
 ensembl_id_2_gene_name <- function(ensembl_gene_id, only_gene_name = TRUE,
                                     verbose = FALSE, mRt_objct = ensembl) {
   
@@ -254,9 +262,15 @@ ensembl_id_2_gene_name <- function(ensembl_gene_id, only_gene_name = TRUE,
 #' @examples
 #' ensembl <- gimme_mart()
 #' gene_name_2_ensembl_id("TSPAN6")
-#' # ENSG00000000003
+#' "ENSG00000000003"
+#' 
+#' # Example with mouse ensembl
+#' ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+#'                       out_dir = F, verbose = T)
+#' gene_name_2_ensembl_id(gene_name = "TSPAN6")
+#' "ENSMUSG00000067377"
 gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
-                                    verbose = FALSE, mRt_objct) {
+                                    verbose = FALSE, mRt_objct = ensembl) {
   
   stopifnot(is.character(gene_name))
   
@@ -269,43 +283,7 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
   # -- 1 -- Retrieve some basic info for this gene ----
   things_to_retrieve <- c("ensembl_gene_id", "external_gene_name",
                           "chromosome_name", "start_position", "gene_biotype")
-  
-  
-  # Fix for human data for when ensembl website is down
-  # use_local <- F
-  # if (use_local) {
-  #   
-  #   if (interactive()) {
-  #     home_dir <- file.path("~/mnt/narecco")
-  #   } else {
-  #     home_dir <- file.path("/users/mirimia/narecco")
-  #   }
-  #   
-  #   proj_dir <- file.path(home_dir, "projects/01_ALTdemix")
-  #   biomart_dir <- file.path(proj_dir, "data/R_Objects/BioMart")
-  #   # Use partial matching to select the species folder
-  #   species_dir_index <- pmatch(tolower(opt$species), list.files(biomart_dir) )
-  #   
-  #   
-  #   if ( opt$species == 'hsapiens') {
-  #     ensembl_dir <- list.files(biomart_dir, full.names = T)[species_dir_index]
-  #     gene_tx_ex_seq_info_path <- list.files(ensembl_dir, full.names = T,
-  #                                            pattern = 'gene_tx_exon_seq_dataframe.rds')
-  #   } else if ( opt$species == 'mmusclus') {
-  #     ensembl_paths <- list.files(ensembl_dir, full.names = T)
-  #     gene_tx_ex_seq_info_path <- list.files(ensembl_dir, full.names = T,
-  #                                            pattern = '2020_02_06_mmusculus_g')
-  #   }
-  # 
-  #   # -- 2 -- Import ENSEMBL BIOMART LOCAL DATAFRAME
-  #   info_df <- readRDS(file = gene_tx_ex_seq_info_path)
-  #   things_to_retrieve <- c("ensembl_gene_id", "external_gene_name",
-  #                           "chromosome_name", "gene_biotype")
-  #   
-  #   fltrd_info_df <- subset(info_df, external_gene_name == gene_name)
-  #   goi_info <- unique(fltrd_info_df[, things_to_retrieve])
-  # 
-  # } else {
+
   goi_info <- getBM(attributes = things_to_retrieve,
                     filters = 'external_gene_name',
                     values = gene_name,
@@ -358,9 +336,15 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
 #' @export
 #'
 #' @examples
+#' # Example with human ensembl
 #' ensembl <- gimme_mart()
 #' ensembl_id_2_gene_name("ENSG00000000003")
-#' # 7105
+#' "7105"
+#' # Example with mouse ensembl
+#' ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+#'                       out_dir = F, verbose = T)
+#' ensembl_id_2_entrez("ENSMUSG00000067377")
+#' "56496"
 ensembl_id_2_entrez <- function(ensembl_gene_id, only_entrez = TRUE,
                                  verbose = FALSE, mRt_objct = ensembl) {
   # -- 0 -- Check input parameters ----
