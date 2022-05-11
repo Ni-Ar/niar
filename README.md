@@ -14,26 +14,26 @@ devtools::install_github("Ni-Ar/niar")
 
 ### Load the local repository (only for CRG users)
 
-If you have a [CRG](https://www.crg.eu/) user account, instead of installing, you can load the R package at the beginning of your session. Log in with your credentials on the [CRG RStudio Server IDE](http://rstudio4.linux.crg.es/) (R version 4.0.3). Install all the required dependencies as just loading the package won’t do that for you. This step takes a while.
+If you have a [CRG](https://www.crg.eu/) user account, instead of installing, you can load the R package at the beginning of your session. Log in with your credentials on the [CRG RStudio Server IDE](http://rstudio4.linux.crg.es/) (R version 4.0.3) and run:
+```R
+devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
+```
+This command will  just load the package (from my local repository on the CRG cluster).
+For this step to work properly you must make sure all the  all the required dependencies have been already installed as just loading the package won’t install the dependencies. You can install most of the required packages (this step takes a while) with :
 
 ```R
 install.packages(c('devtools', 'matrixStats', 'ggplot2', 'ggrepel', 'scales', 'patchwork',
-                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager')) 
+                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager', 'XICOR')) 
 ```
-
 and the following Bioconductor packages:
 
 ```R
 BiocManager::install("Biostrings")
 ```
 
-Then just load the package (from my local repository on the CRG cluster) with:
+If you get an error with this method it’s probably cause by the fact that the dependencies are already in the `.libPaths()`. Remember that once you log out of your `R` session the `niar` functions won’t be availbale anymore and you’ll need to load them again next time. 
 
-```R
-devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
-```
-
-Which should not throw you an error if all the dependencies are already in the `.libPaths()`. Once you log out of your `R` session the functions of the `R` package won’t be availbale anymore and you’ll need to load them again next time. 
+#### Troubleshooting plots in RStudio server
 
 In order to visualise the plots you might need to select the right graphics device, especially if you get an error that says something like:
 
@@ -46,9 +46,14 @@ In grDevices:::png("/tmp/Rtmp....",  :
 
 To solve this go to: Tools Menu (on top of the windos) > Global Options > General section > Graphics tab > and in the Graphic Device Backend drop down menu select `Cairo` and then click “Apply”. Now the plots should be correctly displayed.
 
-## Examples
+## Quick Start
 
-Currently there’s one function to perform Principal Component Analysis (PCA) and other functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression. 
+Currently this package contains:
+
+- one function to perform Principal Component Analysis (PCA)
+- some functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression with some plot functions to quicly glimpse into the data (e.g. `plot_corr_gene_expr_psi()`).
+- [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions
+- [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions
 
 #### PCA
 

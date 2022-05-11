@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Niccolò", "Arecco", , "arecco.niccolo@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-1760-3898"))
-Description: This is a collection of all the functions I've written to analyse data in R.
+Description: This is a collection of functions I've written to analyse data in R.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
