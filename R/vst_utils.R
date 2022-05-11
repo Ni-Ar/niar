@@ -52,9 +52,15 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
       ncol_dPSI <- which(colnames(vst_psi_tbl) == 'dPSI')
       vst_compare_tbl <- TRUE
     } else {
-      # This is not a vast-tools compare table with a dPSI column at the end
+      # There's a column called dPSI but is not the last one so I'm not gonna consider this
+      # as a vast-tools compare table
+      # remove this non-last dPSI column from the PSI_cols
+      PSI_cols <- PSI_cols[-which(colnames(vst_psi_tbl[PSI_cols]) == 'dPSI' )]
       vst_compare_tbl <- FALSE
     }
+  } else {
+    # This is not a vast-tools compare table
+    vst_compare_tbl <- FALSE
   }
   
   # All columns with Q information
@@ -595,6 +601,6 @@ read_vst_tbl <- function(path, verbose = FALSE, ...) {
             round(file.info(cmpr_vst_tbl)$size / 10e3, 2), ' Kbytes')
   }
   return(read_delim(file = path, delim = '\t', col_names = T,
-                    locale = locale(decimal_mark = "."), na = "NA", ...) )
+                    locale = readr::locale(decimal_mark = "."), na = "NA", ...) )
 }
 

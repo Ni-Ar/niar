@@ -96,3 +96,271 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
     
     return(p_PSI)
 }
+
+#' Plot gene expression vs alternatively spliced event PSI
+#'
+#' @param data 
+#' @param quality_thrshld 
+#' @param external_gene_name 
+#' @param vastid 
+#' @param unit 
+#' @param text 
+#' @param beautify 
+#' @param xzero 
+#' @param colour 
+#' @param save_plot 
+#' @param out_plot_dir 
+#' @param verbose 
+#' @param return_data 
+#' @param subttl 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N", 
+                                    external_gene_name, vastid, 
+                                    unit, text = FALSE,
+                                    beautify = FALSE, xzero = TRUE, 
+                                    colour = c('score', 'PSI'), 
+                                    save_plot = FALSE, out_plot_dir,
+                                    verbose = TRUE, return_data = FALSE,
+                                    subttl = NULL) {
+  # --- CHECK PARAMS ----
+  if ( !any(quality_thrshld == c("N", "VLOW", "LOW", "OK", "SOK")) ) {
+    stop("Can't understand the filtering option:\t", quality_thrshld,
+         "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
+  }
+  
+  if ( !any( c( 'TPM', 'cRPKM') %in% unit) ) {
+    stop("unit must be either TPM or cRPKM")
+  }
+  
+  if ( !any( c('score', 'PSI') %in% colour ) ) {
+    stop("unit must be either TPM or cRPKM")
+  }
+  
+  # if using default specification set colour-coding to 'score
+  if ( all(colour == c('score', 'PSI') )) { colour <- 'score' }
+  
+  
+  data_required_cols <- c("Quality_Score_Value", "Gene_Expr", "PSI", "GENE", "Sample" )
+  if ( all(data_required_cols %in% colnames(data) ) ) {
+    # Load required packages
+    require("dplyr") ; require("ggplot2") ; require("magrittr") ; 
+    # If XICOR is not yet installed, try to install it now
+    if (! "XICOR" %in% installed.packages()[,"Package"] ) { 
+      warning("The R package 'XICOR' is not installed, I'm gonna install it now.")
+      install.packages("XICOR")
+    }
+    require("XICOR")
+    
+  } else{
+    missing_col <- which( ! data_required_cols %in% colnames(data_required_cols) )
+    message("Input dataframe is missing the required columns: ", 
+            paste0(data_required_cols[missing_col], collapse = " ") )
+  }
+  
+  # --- PLOT LAYOUT ----
+  theme_classic() +
+    theme(legend.direction = "horizontal",
+          legend.position = "bottom",
+          legend.background = element_blank(),
+          legend.title = element_text(size = 8, vjust = 1),
+          legend.key.width = unit(16, "mm"),
+          legend.key.height = unit(1.8, "mm"),
+          legend.margin = margin(t = -2, b = -3.5, unit = "pt"),
+          
+          plot.background = element_blank(),
+          plot.caption = element_text(size = 5, margin = margin(t = -8, unit = "pt")),
+          plot.title = element_text(size = 9),
+          plot.subtitle = element_text(size = 8),
+          plot.tag = element_text(size = 5.75, face = "bold", color = "black"),
+          
+          panel.background = element_blank(),
+          panel.grid.major.y = element_line(colour = 'grey73', size = 0.5),
+          
+          axis.text = element_text(colour = "black", size = 8),
+          axis.title = element_text(colour = "black", size = 8),
+          axis.ticks.length.y = unit(2, units = "mm"),
+          
+          strip.background = element_blank() ) -> niar_theme
+  
+  # --- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld ---
+  # Set the Score 1 quality values as factors 
+  Quality_Score_Values <- c("N", "VLOW", "LOW", "OK", "SOK")
+  data$Quality_Score_Value <- factor(data$Quality_Score_Value,
+                                     Quality_Score_Values)
+  
+  num_quality_thrshld <- as.numeric(factor(quality_thrshld, levels = Quality_Score_Values))
+  data <- subset(data, as.numeric(Quality_Score_Value) >= num_quality_thrshld)
+  
+  # --- CORRELATION EXPRESSION vs PSI  --- 
+  # Spearmann
+  expr_psi_sprmn <- cor(data$Gene_Expr, data$PSI, use = "complete.obs",
+                        method = "spearman") 
+  expr_psi_sprmn <- round(expr_psi_sprmn, 3)
+  
+  # Pearson
+  expr_psi_prsn <- cor(data$Gene_Expr, data$PSI, use = "complete.obs",
+                       method = "pearson")
+  expr_psi_prsn <- round(expr_psi_prsn, 3)
+  
+  # Chatterjee ( http://arxiv.org/abs/1909.10140 )
+  expr_psi_chttrj <- calculateXI(xvec = data$Gene_Expr, yvec = data$PSI, 
+                                 simple = T, seed = 16)
+  expr_psi_chttrj <- round(expr_psi_chttrj, 3)
+  
+  if ( verbose ) {
+    message("Expression vs PSI correlations:\n",
+            "GENE: ", external_gene_name, "\tID: ", vastid, "\n",
+            "Spearman: ", expr_psi_sprmn, " Pearson: ", expr_psi_prsn,
+            " Chatterjee: ", expr_psi_chttrj)
+  }
+  
+  if ( beautify ) {
+    suppressPackageStartupMessages( require(Biostrings) )
+    names <- sort(unique(data$Sample))
+    random_names <- base::sample(x = names, size = 2)
+    # Try to remove the longest common prefix from the sample names
+    # This looks 2 random elements in the names and checks what prefix they have 
+    # in common and removes if from the plotted sample names.
+    # PREFIX
+    nchar_common_prefix <- Biostrings::lcprefix(s1 = random_names[1],
+                                                s2 = random_names[2])
+    
+    if ( nchar_common_prefix > 0 ) {
+      common_prefix <- substr(random_names[1], start = 1, stop = nchar_common_prefix)
+      if (verbose) { message("Found prefix: ", common_prefix) }
+      data <- data %>%
+        dplyr::mutate(Pretty_Sample = gsub(pattern = paste0("^", common_prefix),
+                                           replacement = "", x = Sample,
+                                           ignore.case = T, perl = F))
+    } else {
+      if (verbose) { message("Couldn't find common prefix.") }
+      data <- data %>% dplyr::mutate(Pretty_Sample =  Sample)
+    }
+    
+    # Try to remove the longest AND most abundant common suffix from 
+    # sample names with the a somewhat similar approach as for the prefixes
+    # SUFFIX
+    common_suffix <- longest_most_abundant_common_suffix(x = names, k = 80)
+    
+    if ( length(nchar(common_suffix)) > 0 ) {
+      
+      if (verbose) { message("Found suffix: ", common_suffix) }
+      data <- data %>%
+        dplyr::mutate(Pretty_Sample = gsub(pattern = paste0(common_suffix, "$"),
+                                           replacement = "", x = Sample,
+                                           ignore.case = T, perl = F) )
+    } else {
+      if (verbose) { message("Couldn't find common prefix.") }
+      data <- data %>% dplyr::mutate(Pretty_Sample =  Sample)
+    }
+    # Maybe in the future this could be improved...?
+  }
+  
+  # --- PLOT --- 
+  AS_EVENT_GENE <- unique(data$GENE)
+  
+  info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vastid, " (",
+                     AS_EVENT_GENE, ")", "      ", "Spearman: ", expr_psi_sprmn,
+                     ", Pearson: ", expr_psi_prsn, 
+                     ", Chatterjee: ", expr_psi_chttrj)
+  
+  ggplot(data) +
+    aes(x = Gene_Expr, y = PSI) +
+    stat_smooth(method = 'lm', formula = 'y ~ x', se = T, level = 0.95,
+                colour = 'black', size = 0.5) +
+    coord_cartesian(ylim = c(0, 100), clip = 'off', default = TRUE)  +
+    labs(title = info_ttl, x = paste0(external_gene_name, " ", unit),
+         subtitle = subttl)  +
+    ylab( bquote(.(AS_EVENT_GENE)~.(vastid)~~Psi) ) +
+    niar_theme -> cor_plot
+  
+  # Decide if gene expression should start from zero or not
+  if( xzero ) { 
+    cor_plot <- cor_plot + coord_cartesian(xlim = c(0, NA), 
+                                           ylim = c(0, 100), clip = 'off' )
+  }
+  
+  # Decide if showing sample names as text
+  if ( text ) {
+    suppressPackageStartupMessages( require( ggrepel ) )
+    # Try to plot at best half of the sample names
+    n_samples <- length(unique(data$Sample))
+    k <- 2
+    max_n_text <- ( floor(n_samples/k) + k)
+    
+    if ( beautify ) { # Plot pretty names
+      cor_plot <- cor_plot + 
+        geom_text_repel(aes(label = Pretty_Sample), size = 2.25, 
+                        max.overlaps = max_n_text, min.segment.length = 0.25,
+                        segment.size = 0.25, segment.alpha = 0.75, max.time = 2,
+                        seed = 16, na.rm = T, show.legend = F, verbose = verbose)
+    } else { # or plot regular names
+      cor_plot <- cor_plot + 
+        geom_text_repel(aes(label = Sample), size = 2.25, 
+                        max.overlaps = max_n_text, min.segment.length = 0.25,
+                        segment.size = 0.25, segment.alpha = 0.75, max.time = 2,
+                        seed = 16, na.rm = T, show.legend = F, verbose = verbose)
+    }
+  }
+  
+  if ( colour == 'score' ) {
+    # Palette of greens
+    quality_score_colors <- c('#ffffcc', '#c2e699', '#78c679', '#31a354', '#006837')
+    names(quality_score_colors) <- Quality_Score_Values
+    
+    cor_plot <-  cor_plot +
+      geom_point(aes(fill = Quality_Score_Value), shape = 21, size = 3) +
+      scale_fill_manual(values = quality_score_colors) 
+    
+  } else if ( colour == 'PSI' ) {
+    
+    cor_plot <- cor_plot +
+      geom_point(aes(fill = PSI), shape = 21, size = 3) +
+      scale_fill_gradient2(low = "#E317BF", mid = "#E3C22D", high = "#11E3DA",
+                           midpoint = 50, limits = c(0, 100) ) + 
+      guides(fill = guide_colorbar(barwidth = grid::unit(x = 11, "cm") ) ) 
+    
+  } else {
+    stop("Colour option is not defined correctly! colour = must be either 'score' or 'PSI'.")
+  }
+  
+  # --- RETURN OR EXPORT PLOT AS PDF
+  if (save_plot) {
+    # Plot name contains filtering decisions
+    if ( quality_thrshld == "N") {
+      filtering_name <- "unfltrd"
+    } else {
+      filtering_name <- paste0("fltrd", quality_thrshld)
+    }
+    
+    sub_ttl_name <- gsub(pattern = " ", replacement = "_", subttl)
+    
+    snazzy_plt_name <- paste(external_gene_name, unit, 
+                             vastid, "PSI", filtering_name, sub_ttl_name,
+                             "expr_psi_correlations.pdf", sep = "_")
+    
+    # If output plot dir doesn't exists create it.
+    if (!dir.exists(out_plot_dir)) { dir.create(out_plot_dir, recursive = T) }
+    # Warn if file already exists
+    if ( file.exists(file.path(out_plot_dir, snazzy_plt_name) ) ) {
+      warning("The output plot already exists, I'm gonna overwrite it!")
+    }
+    ggsave(filename = snazzy_plt_name, 
+           plot = cor_plot,
+           path = out_plot_dir,
+           units = "cm",
+           width = 18, height = 10,
+           device = "pdf")
+    
+    if (verbose) { message("Plot: ", snazzy_plt_name, " saved in:\n", out_plot_dir) }
+    
+  }
+  
+  # Return the tidy data or the plot. Can return data independently from save_plot 
+  if (return_data) {  return(data) } else { return(cor_plot) }
+}
+
