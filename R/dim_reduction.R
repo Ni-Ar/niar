@@ -41,7 +41,7 @@
 #' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)              
 showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol, 
                          m_fill = mcol, m_label = FALSE, 
-                         n_top_var = 250, filt_mat = FALSE, 
+                         n_top_var = 500, filt_mat = FALSE, 
                          NA_filt_thrshld = 0.95, show_variance = FALSE, 
                          show_stats = FALSE, n_loadings = NULL, 
                          return_data = FALSE, real_aspect_ratio = TRUE, ... ) {
@@ -72,7 +72,14 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
   }
   
-  if ( class(mt) != "data.frame" ) { stop("Metadata is not a dataframe") }
+  # check if the metadata is a tibble and convert to dataframe
+  if ( any(class(mt) != "data.frame") ) {
+    if ( any(class(mt) != "tbl_df") )  {
+      mt <- as.data.frame(mt)
+    }
+  }
+  # stop if metadata is not a tibble
+  if ( class(mt) != "data.frame")  { stop("Metadata is not a dataframe") }
   
   if ( !all(colnames(mat) %in% mt[, mcol])) {
     stop("The matrix column names are not all present in the 'mcol' column ", 

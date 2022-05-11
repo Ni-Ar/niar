@@ -12,7 +12,7 @@ showme_PCA2D(
   mcol,
   m_fill = mcol,
   m_label = FALSE,
-  n_top_var = 250,
+  n_top_var = 500,
   filt_mat = FALSE,
   NA_filt_thrshld = 0.95,
   show_variance = FALSE,
