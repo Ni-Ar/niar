@@ -8,7 +8,7 @@ gene_name_2_ensembl_id(
   gene_name,
   only_ensembl_id = TRUE,
   verbose = FALSE,
-  mRt_objct
+  mRt_objct = ensembl
 )
 }
 \arguments{
@@ -20,14 +20,17 @@ gene_name_2_ensembl_id(
 
 \item{mRt_objct}{A \code{biomaRt} object created with the \code{gimme_mart()} function.}
 }
-\value{
-
-}
 \description{
 Convenient converter from gene name to ensembl ID
 }
 \examples{
 ensembl <- gimme_mart()
 gene_name_2_ensembl_id("TSPAN6")
-# ENSG00000000003
+"ENSG00000000003"
+
+# Example with mouse ensembl
+ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+                      out_dir = F, verbose = T)
+gene_name_2_ensembl_id(gene_name = "TSPAN6")
+"ENSMUSG00000067377"
 }

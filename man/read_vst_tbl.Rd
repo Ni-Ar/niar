@@ -23,5 +23,4 @@ Wrapper for readr::read_delim for a tab delimited table. Fastest way to read thi
 read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") \%>\%
    tidy_vst_psi()
  
-   
 }

@@ -16,7 +16,7 @@ gimme_mart(
 \arguments{
 \item{species}{a character specifying the species to work with. Currently the supported species are:
 \itemize{
-\item{\code{hsapiens} - Human (Homo Sapiens)}
+\item{\code{hsapiens} - Human (Homo Sapiens) Default}
 \item{\code{mmusculus} - Mouse (Mus Musculus)}
 \item{\code{rnorvegicus} - Rat (Rattus Norvegicus)}
 \item{\code{ggallus} - Chicken (Gallus Gallus)}
@@ -38,12 +38,10 @@ gimme_mart(
 
 \item{verbose}{Logical. Print info messages? Default \code{FALSE}.}
 }
-\value{
-
-}
 \description{
 Handy function to create a biomaRt R object based on the ENSEMBL database to be used when querying biomart
 }
 \examples{
+# Human ENSEMBL biomaRT object
 ensembl <- gimme_mart()
 }

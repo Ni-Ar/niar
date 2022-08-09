@@ -50,9 +50,6 @@ plot_corr_gene_expr_psi(
 
 \item{subttl}{}
 }
-\value{
-
-}
 \description{
 Plot gene expression vs alternatively spliced event PSI
 }

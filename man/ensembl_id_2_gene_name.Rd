@@ -20,14 +20,18 @@ ensembl_id_2_gene_name(
 
 \item{mRt_objct}{A \code{biomaRt} object created with the \code{gimme_mart()} function.}
 }
-\value{
-
-}
 \description{
 Convenient converter from ensembl ID to gene name
 }
 \examples{
 ensembl <- gimme_mart()
 ensembl_id_2_gene_name("ENSG00000000003")
-# TSPAN6
+"TSPAN6"
+# Example with mouse ensembl
+ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+                      out_dir = F, verbose = T)
+ensembl_id_2_gene_name("ENSMUSG00000067377", only_gene_name = F)
+     ensembl_gene_id external_gene_name chromosome_name start_position   gene_biotype
+1 ENSMUSG00000067377             Tspan6               X      132791817 protein_coding
+
 }

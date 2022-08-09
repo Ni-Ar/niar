@@ -23,9 +23,6 @@ longest_most_abundant_common_suffix(
 
 \item{verbose}{Logical. Print out info.}
 }
-\value{
-
-}
 \description{
 Find longest and most abundant common suffix
 }

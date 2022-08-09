@@ -8,7 +8,7 @@ grep_psi(
   inclusion_tbl,
   vst_id,
   tmp_dir = tempdir(),
-  verbose = TRUE,
+  verbose = FALSE,
   clear_tmp = TRUE,
   fast_grep = TRUE,
   split_temp = TRUE

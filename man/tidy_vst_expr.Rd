@@ -17,9 +17,6 @@ tidy_vst_expr(
 
 \item{ID_cols}{The columns names to use as IDs in \code{data}}
 }
-\value{
-
-}
 \description{
 Reshape a wide vast-tools expression table to a long format
 }

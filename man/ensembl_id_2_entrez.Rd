@@ -20,14 +20,17 @@ ensembl_id_2_entrez(
 
 \item{mRt_objct}{A \code{biomaRt} object created with the \code{gimme_mart()} function.}
 }
-\value{
-
-}
 \description{
 Convenient converter from ensembl ID to entrez ID
 }
 \examples{
+# Example with human ensembl
 ensembl <- gimme_mart()
 ensembl_id_2_gene_name("ENSG00000000003")
-# 7105
+"7105"
+# Example with mouse ensembl
+ensembl <- gimme_mart(species = "mmusculus", latest = T, use_mirror = F, 
+                      out_dir = F, verbose = T)
+ensembl_id_2_entrez("ENSMUSG00000067377")
+"56496"
 }

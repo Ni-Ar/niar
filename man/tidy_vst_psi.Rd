@@ -11,7 +11,7 @@ tidy_vst_psi(
   quality_col_suffix = "-Q",
   return_quality_scores = TRUE,
   return_S1_only = TRUE,
-  verbose = TRUE,
+  verbose = FALSE,
   add_ID_col = FALSE,
   col_ID_name = "banana"
 )
