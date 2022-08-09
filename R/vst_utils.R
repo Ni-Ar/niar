@@ -23,7 +23,7 @@
 #'     tidy_vst_psi()
 tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                          quality_col_suffix = "-Q", return_quality_scores = TRUE,
-                         return_S1_only = TRUE, verbose = TRUE, add_ID_col = FALSE,
+                         return_S1_only = TRUE, verbose = FALSE, add_ID_col = FALSE,
                          col_ID_name = 'banana') {
 
   if (return_S1_only == TRUE & return_quality_scores == F) {
@@ -343,7 +343,7 @@ guess_species <- function(vastid, latin_name = F) {
 #' @examples
 #' #' grep_psi(path_to_vst_tbl, vst_id) %>%
 #'     tidy_vst_psi()
-grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = TRUE, 
+grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE, 
                      clear_tmp = TRUE, fast_grep = TRUE, split_temp = TRUE) {
   
   # 0 -- Check params and set commands
@@ -592,7 +592,6 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
 #' read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") %>%
 #'    tidy_vst_psi()
 #'  
-#'    
 read_vst_tbl <- function(path, verbose = FALSE, ...) {
   if (!file.exists(path)) { stop('Cannot find vast-tools table!\n') }
   
@@ -602,5 +601,112 @@ read_vst_tbl <- function(path, verbose = FALSE, ...) {
   }
   return(read_delim(file = path, delim = '\t', col_names = T,
                     locale = readr::locale(decimal_mark = "."), na = "NA", ...) )
+}
+
+
+#' Wrapper function to import pre-processed vast-tool analysis tables of Mouse Development ENCODE data.
+#'
+#' @param inclusion_tbl Path to vast-tools inclusion table that contains a `vst_id` event. Use default (`NULL`) to use pre-defined PSI table.
+#' @param vst_expression_tbl Path to a vast-tools expression table (either `cRPKM` or `TPM`) that contains a `ensembl_gene_id` gene. Use default (`NULL`) to use pre-defined normalised TPMs table.
+#' @param metadata_path A path to a metadata table. Use default (`NULL`) to use pre-defined metadata table.
+#' @param ensembl_gene_id A valid Mouse ENSEMBL gene ID.
+#' @param vst_id A valid Mouse Vast-tools ID.
+#' @param filter_tbl Whether you want the full table to the filtered one with all the data.
+#'
+#' @return A tibble
+#' @importFrom readr read_delim
+#' @importFrom dplyr mutate select relocate left_join group_by
+#' @export
+#'
+#' @examples
+#' # Get Pax6 gene expression and Pax6 exon 6 PSI across mouse tissues development.
+#' get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000027168", vst_id = "MmuEX0033804") 
+#'  
+get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL, 
+                                       vst_expression_tbl = NULL,
+                                       metadata_path = NULL,
+                                       ensembl_gene_id, vst_id, 
+                                       filter_tbl = TRUE) {
+    
+    # Check params 
+    if ( missing(ensembl_gene_id) ) { stop("You didn't specified an ENSEMBL gene ID!") } 
+    if ( missing(vst_id) ) { stop("You didn't specified a vastID!") } 
+    if ( !is.logical(filter_tbl) ) { stop("filter_tbl must be TRUE or FALSE")}
+    
+    data_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/data')
+    vast_out <- file.path(data_dir, 'INCLUSION_tbl/Mouse_Development/vast_tools/vast_out')
+    
+    if (is.null(inclusion_tbl) ) {
+        inclusion_tbl <- file.path(vast_out, "INCLUSION_LEVELS_FULL-mm10-469-v251.tab")
+    }
+    
+    if ( is.null(vst_expression_tbl) ) {
+        vst_expression_tbl <- file.path(vast_out, "TPM-mm10-469-NORM.tab")
+    }
+    
+    if( is.null(metadata_path) ) {
+        metadata_dir <- file.path(data_dir, 'SRA_tbls/Mouse_Development')
+        metadata_path <- file.path(metadata_dir, 'All_ENCODE_Mouse_Dev_Tissues.tab')
+    }
+    
+    mtdt <- read_delim(file = metadata_path, delim = "\t", show_col_types = FALSE,
+                       col_names = c("Run", "Sample", "Group", "Tissue", "Stage", "Sex"))
+    
+    # Import PSI and normalised gene expression TPMs
+    grep_psi(inclusion_tbl = inclusion_tbl, vst_id = vst_id, verbose = F) |>
+        tidy_vst_psi() -> psi_tbl
+    
+    grep_gene_expression(vst_expression_tbl = vst_expression_tbl,
+                         ensembl_gene_id = ensembl_gene_id, verbose = F) |>
+        tidy_vst_expr() -> expr_tbl
+    
+    # Split individual replicates and merged samples
+    left_join(psi_tbl, expr_tbl, by = "Sample") |>
+        mutate(Type =  case_when(Sample %in% mtdt$Sample ~ "Replicate",
+                                 !Sample %in% mtdt$Sample ~ "Merge")) -> parsed_tbl
+    
+    subset(parsed_tbl, Type == "Replicate") |>
+        left_join(mtdt, by = "Sample") -> individual_reps_tbl
+    
+    # Merge
+    merged_reps_tbl <- subset(parsed_tbl, Type == "Merge") 
+    colnames(merged_reps_tbl)[colnames(merged_reps_tbl) == "Sample"] <- "Group"
+    merged_reps_tbl <- left_join(merged_reps_tbl, mtdt, by = "Group")
+    
+    parsed_tbl <- rbind(individual_reps_tbl, merged_reps_tbl)
+    
+    # Calculate mean PSI between replicates.
+    parsed_tbl |>
+        group_by(Tissue, Stage) |>
+        mutate(mean_PSI = mean(PSI, na.rm = T),
+               mean_Gene_Expr = mean(Gene_Expr)) |>
+        relocate(mean_PSI, .after = PSI)  -> parsed_tbl
+    
+    # Clean up names and factorise tissues
+    parsed_tbl |>
+        mutate(Tissue = ifelse(Tissue == "CentralNervousSystem", yes = "CNS", no = Tissue),
+               Tissue = ifelse(Tissue == "CraniofacialProminence", yes = "Craniofacial\nProminence", no = Tissue) ) |>
+        mutate(Tissue = factor(Tissue, 
+                               levels = c("Craniofacial\nProminence", "CNS", "Brain", 
+                                          "Forebrain", "Midbrain", "Hindbrain", 
+                                          "NeuralTube", "Heart", "SkeletalMuscle", "Limb",
+                                          "Liver", "Stomach", "Intestine", "Kidney",
+                                          "Lung", "Bladder",
+                                          "Spleen", "AdrenalGland", "Thymus") ) ) |>
+        relocate(Tissue, .after = "Sample") -> parsed_tbl
+    
+    if ( filter_tbl == TRUE ) {
+        
+        subset(parsed_tbl, !Tissue %in% c("CNS", "Brain", "SkeletalMuscle", "Bladder",
+                                          "Spleen", "AdrenalGland") ) |>
+            subset(! Stage %in% c("E14", "E18") ) |>
+            select( c("GENE", "EVENT", "Tissue", "Stage", "mean_PSI", "mean_Gene_Expr")) |>
+            unique() -> tidy_tbl
+    } else if ( filter_tbl == FALSE) {
+        tidy_tbl <- parsed_tbl
+    } else {
+        stop("filter_tbl must be logical!")
+    }
+    return(tidy_tbl)
 }
 
