@@ -29,6 +29,8 @@ and the following Bioconductor packages:
 
 ```R
 BiocManager::install("Biostrings")
+BiocManager::install("biomaRt")
+BiocManager::install("DESeq2")
 ```
 
 If you get an error with this method it’s probably cause by the fact that the dependencies are already in the `.libPaths()`. Remember that once you log out of your `R` session the `niar` functions won’t be availbale anymore and you’ll need to load them again next time. 
@@ -104,3 +106,8 @@ which will return a dataframe. These functions are basically “hacks” that ca
 ## Vignettes
 
 [Link for PCA](https://htmlpreview.github.io/?https://github.com/Ni-Ar/niar/blob/main/doc/Introduction_Dim_Reduction.html).
+
+### To do
+- [ ] Fix `gene_name_2_ensembl_id` warning when returning more than one ID (put `all()` `if (!valid_ensembl_id)` )
+- [ ] The fun `plot_corr_gene_expr_psi` should do a subset for `vastid=` if provided more than one from the `psi_tbl`
+- [ ]  The fun `plot_corr_gene_expr_psi`  more breaks on x-axis. `scale_x_continous(n.breaks = 10)`

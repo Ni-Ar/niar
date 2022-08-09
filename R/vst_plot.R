@@ -147,13 +147,13 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   data_required_cols <- c("Quality_Score_Value", "Gene_Expr", "PSI", "GENE", "Sample" )
   if ( all(data_required_cols %in% colnames(data) ) ) {
     # Load required packages
-    require("dplyr") ; require("ggplot2") ; require("magrittr") ; 
+    # require("dplyr") ; require("ggplot2") ; require("magrittr") ; 
     # If XICOR is not yet installed, try to install it now
     if (! "XICOR" %in% installed.packages()[,"Package"] ) { 
       warning("The R package 'XICOR' is not installed, I'm gonna install it now.")
       install.packages("XICOR")
     }
-    require("XICOR")
+    # require("XICOR")
     
   } else{
     missing_col <- which( ! data_required_cols %in% colnames(data_required_cols) )
@@ -364,3 +364,206 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   if (return_data) {  return(data) } else { return(cor_plot) }
 }
 
+
+
+
+#' Nice plot to check expression and PSI across ENCODE mouse developmental stages of different tissues.
+#'
+#' @param data_tbl A tibble generated with `get_mouse_tissue_devel_tbl`.
+#' @param title A title for the plot. By default (`NULL`) is "gene ~ vast-id".
+#' @param legend Either `inside` or `outside` for specifying the position of the legend relative to the plot.
+#' @param save_plot Logical, whether or not to save the plot as pdf.
+#' @param plot_name Name of the pdf plot file. By default (`NULL`) is a meaningful name.
+#' @param out_plot_dir Path specifying where to save the plot. By default (`NULL`) is dated subfolder.
+#' @param width Width of the plot in cm (numeric). Defaults are already very good.
+#' @param height Height of the plot in cm (numeric). Defaults are already very good.
+#'
+#' @return Either a plot of a pdf.
+#' @import ggplot2 
+#' @import scales
+#' @import Cairo
+#' @import MetBrewer
+#' @export
+#'
+#' @examples
+#' # Save plot of Pax6 expression and its exon 6 PSI 
+#' get_mouse_tissue_devel_tbl(vst_id = "MmuEX0033804", ensembl_gene_id = "ENSMUSG00000027168")  |>
+#'          plot_mouse_tissue_devel(legend = "outside", save_plot = T)
+plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside', 'outside'), 
+                                    save_plot = FALSE, plot_name = NULL, 
+                                    out_plot_dir = NULL, width = 7, height = 7) {
+
+    # Check params 
+    if ( missing(data_tbl) ) { stop("You didn't specified an table generated with `get_mouse_tissue_devel_tbl`!") } 
+    
+    if( is.null(title) ) {
+        title <- unique(paste0(data_tbl$GENE, " ~ ", data_tbl$EVENT))
+    }
+    
+    ggplot(data_tbl) +
+        aes(x = Stage, y = Tissue, fill = mean_PSI, size = log2(mean_Gene_Expr + 1) ) +
+        geom_point(shape = 21, stroke = 0.2) +
+        geom_text(aes(label = round(mean_PSI, 0)), size = 1.75, family = "Arial") + 
+        scale_size(range = c(2, 6), breaks = c(1:10), name = 'log2(TPMs)') +
+        scale_x_discrete(expand = expansion(mult = 0.05, add = 0.1) ) +
+        coord_cartesian(clip = 'off') +
+        labs(title = title ) +
+        theme_classic(base_family = "Arial") +
+        theme(axis.text = element_text(colour = 'black', size = 5),
+              axis.text.x = element_text(margin = margin(t = 0, unit = "mm")),
+              axis.text.y = element_text(hjust = 1, margin = margin(r = 0, unit = "mm")),
+              axis.title = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.ticks.y = element_line(size = 0.25, colour = "black"),
+              axis.ticks.length.y = unit(x = 1, units = "mm"),
+              axis.line = element_line(size = 0.25, colour = "black"),
+              plot.title = element_text(size = 5, vjust = 0, hjust = 0.05, margin = margin(b = -1, unit = "mm")),
+              plot.background = element_blank(),
+              panel.background = element_blank(),
+              panel.grid.major.y = element_line(colour = "gray84", size = 0.2) ) -> core_plot
+    
+    
+    if (legend == 'inside') {
+        core_plot +
+            scale_fill_gradientn(colours = met.brewer("Hiroshige", 9, direction = -1),
+                                 breaks = c(0, 25, 50, 75, 100), name = "Mean PSI", 
+                                 limits = c(0, 100), na.value = "gray84",
+                                 labels = c("0\nSkipping", 25, 50, 75, "100\nInclusion") ) +
+            guides(
+                fill = guide_colourbar(
+                    barwidth = unit(16, units = "mm"),
+                    barheight = unit(1, units = "mm"),
+                    title.position = "top",
+                    title.hjust = 0,
+                    title.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5,
+                        vjust = 0,
+                        margin = margin(t = -1, b = -0.5, unit = "mm")
+                    ),
+                    label.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5,
+                        margin = margin(t = 0, unit = "mm")
+                    )
+                ),
+                size = guide_legend(
+                    reverse = F,
+                    override.aes = list(fill = "gray84"),
+                    keyheight = grid::unit(1, 'mm'),
+                    keywidth = grid::unit(1, 'mm'),
+                    nrow = 1,
+                    title.vjust = 0.55,
+                    title.position = "top",
+                    title.hjust = 0,
+                    title.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5,
+                        vjust = 0,
+                        margin = margin(t = -1, b = -1.5, unit = "mm")
+                    ),
+                    label.position = "bottom",
+                    label.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5,
+                        hjust = 0.5,
+                        vjust = 0,
+                        margin = margin(t = -2, unit = "mm")
+                    )
+                )
+            )  +
+    theme(legend.position = c(0.225, 0.80),
+          legend.direction = "horizontal",
+          legend.title = element_text(size = 5),
+          legend.text = element_text(size = 5),
+          legend.background = element_rect(colour = "white"),
+          legend.margin = margin(t = -1, b = -1, l = 0, r = -1, unit = "mm"),
+          legend.box.spacing = grid::unit(0, 'mm'),
+          legend.key = element_blank() ) -> final_plot
+        
+    } else if ( legend == "outside") {
+        core_plot +
+            scale_fill_gradientn(colors = MetBrewer::met.brewer("Hiroshige", 9, direction = -1),
+                                 breaks = c(0, 25, 50, 75, 100), name = "Mean PSI", 
+                                 limits = c(0, 100), na.value = "gray84",
+                                 labels = c("0 (Skipping)", 25, 50, 75, "100 (Inclusion)") ) +
+            guides(
+                fill = guide_colourbar(
+                    barheight = unit(25, units = "mm"),
+                    barwidth = unit(1, units = "mm"),
+                    title.position = "top",
+                    title.hjust = 0,
+                    title.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5),
+                    label.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5) ),
+                size = guide_legend(
+                    override.aes = list(fill = "gray90"),
+                    keyheight = grid::unit(1, 'mm'),
+                    keywidth = grid::unit(1, 'mm'),
+                    title.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5 ),
+                    label.theme = element_text(
+                        family = "Arial",
+                        colour = "black",
+                        size = 5
+                    )
+                )
+            )  +
+            theme(legend.title = element_text(size = 5),
+                  legend.text = element_text(size = 5),
+                  legend.background = element_blank(),
+                  legend.margin = margin(t = -1, b = -1, l = 2, r = -1, unit = "mm"),
+                  legend.box = "vertical",
+                  legend.box.spacing = grid::unit(0, 'mm'),
+                  legend.box.background = element_blank(),
+                  legend.key = element_blank() ) -> final_plot
+        
+        width <- width + 0.5
+        
+    } else{
+        stop("'legend' must specify the position of the legend relative to the plot.")
+    }
+
+    if (is.null(plot_name) ) {
+        plot_name <- paste0("Mouse_Devel_", unique(data_tbl$GENE), "_Expr_", 
+                            unique(data_tbl$EVENT), "_PSI_", 
+                            width, "x", height, "cm.pdf" ) 
+    }
+    
+    if (save_plot) {
+        if( is.null (out_plot_dir) ) { 
+            anal_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/analysis')
+            out_plot_dir <- file.path(anal_dir, 'tools_output/ENCODE_Mouse_Development', format(Sys.Date(), "%Y_%m_%d"))
+        }
+    }
+
+    if ( save_plot == TRUE ) {
+        # If output plot dir doesn't exists create it.
+        if (!dir.exists(out_plot_dir)) { dir.create(out_plot_dir, recursive = T) }
+        # Warn if file already exists
+        if ( file.exists(file.path(out_plot_dir, plot_name) ) ) {
+            warning("The output plot already exists, I'm gonna overwrite it!")
+        }
+        
+        ggsave(filename = plot_name, plot = final_plot, device = cairo_pdf, 
+               path = out_plot_dir, units = "cm", width = width, height = height)
+        
+    } else if ( save_plot == FALSE ) {
+        return(final_plot)
+        
+    } else {
+        stop("`save_plot` must be logical! Either TRUE or FALSE")
+    }
+       
+}
