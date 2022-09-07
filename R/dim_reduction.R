@@ -255,6 +255,9 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
       pca_loadings$Observations <- rownames(pca_loadings)
       pca_loadings |>
         dplyr::mutate(Observations = forcats::fct_reorder(Observations, PCx, .desc = T)) |>
+        # the \(x) is like using the dot "." with the magrittr pipe operator "%>%"
+        # it is wrapped in parentheses "(" ")" and it behaves like a function
+        # so it must have a "()" at the end
         dplyr::arrange(desc(PCx) ) |> (\(x) {
           rbind(head(x, n_loadings), tail(x, n_loadings))
         })() -> loadings_data
