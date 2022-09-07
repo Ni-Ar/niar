@@ -3,6 +3,10 @@
 Here I collect many `R` functions that I’ve created over time. The primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. So this means that the code could be subject to frequent changes and is "always" in development. Feedback is welcome!
 If you find an error please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new).
 
+## Requirements
+ - `R` >=4.1.0
+ - Mac or Linux operating system (not tested on Windows)
+
 ## Installation
 
 There are 2 options to use this package.
@@ -110,4 +114,3 @@ These functions are basically “hacks” that call the system `grep` command, w
 - [ ] Make vignettes for `biomaRt` functions and vast-tools utility and plotting functions.
 - [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
 - [ ] Add my [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions.
-
