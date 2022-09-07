@@ -20,7 +20,6 @@
 #' @return Either a plot (created with `ggplot2`), a combination of plots ( created with `patchwork`) or a `data.frame`. 
 #' 
 #' @import ggplot2
-#' @import magrittr
 #' @import patchwork
 #' @importFrom stats prcomp
 #' @importFrom matrixStats rowVars
@@ -38,7 +37,21 @@
 #' showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", m_fill = "replicate",
 #'              x = 3, show_stats = T, m_label = F)
 #'              
-#' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)              
+#' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)  
+#' 
+#' # Working with metadata
+#' data.frame(sample_name = paste0("Sample", 0:9),
+#'            replicate = c(rep(c(1:3), 3), 1), 
+#'            condition = c(rep("A", 5), rep("Z", 5)),
+#'            stringsAsFactors = FALSE) -> mt            
+#'
+#' showme_PCA2D(mat = mat, mt = mt) # does not work cause `mcol` is not specified.
+#' 
+#' # This works instead because the `mcol` is specified.
+#' showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", m_label = "replicate")
+#' 
+#' # This throws a warning dropping `mcol` as there's no metadata provided.
+#' showme_PCA2D(mat = mat, mcol = "sample_name") 
 showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol, 
                          m_fill = mcol, m_label = FALSE, 
                          n_top_var = 500, filt_mat = FALSE, 
@@ -240,11 +253,11 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
       pca_loadings <- data.frame( PCx = pca_data$rotation[, x], 
                                   stringsAsFactors = F) 
       pca_loadings$Observations <- rownames(pca_loadings)
-      pca_loadings %>%
-        dplyr::mutate(Observations = forcats::fct_reorder(Observations, PCx, .desc = T)) %>%
-        dplyr::arrange(.data = .,desc(PCx) ) %>% {
-          rbind(head(., n_loadings), tail(., n_loadings))
-        } -> loadings_data
+      pca_loadings |>
+        dplyr::mutate(Observations = forcats::fct_reorder(Observations, PCx, .desc = T)) |>
+        dplyr::arrange(desc(PCx) ) |> (\(x) {
+          rbind(head(x, n_loadings), tail(x, n_loadings))
+        })() -> loadings_data
       
       mid_line <- round(median(loadings_data$PCx), 2)
       
@@ -272,16 +285,16 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     if ( show_stats ) {
       # Suppress summarise info
       options(dplyr.summarise.inform = FALSE)
-      as.data.frame(mat) %>%
-        tidyr::pivot_longer(cols = everything()) %>%
-        dplyr::group_by(name) %>%
+      as.data.frame(mat) |>
+        tidyr::pivot_longer(cols = everything()) |>
+        dplyr::group_by(name) |>
         dplyr::summarise(Minimum = min(value), 
                          Median = median(value),
                          Mean = mean(value), 
                          Maximum = max(value),
-                         StDev = sd(value)) %>%
+                         StDev = sd(value)) |>
         tidyr::pivot_longer( cols = !matches("name"), 
-                             names_to = "summary_stats") %>%
+                             names_to = "summary_stats") |>
         ggplot2::ggplot(aes(y = summary_stats, x = value, fill = summary_stats)) +
         geom_boxplot(show.legend = F) + 
         scale_x_log10() +
