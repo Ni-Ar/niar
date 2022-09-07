@@ -292,9 +292,6 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
                     quote = "\'", 
                     useCache = TRUE)
   
-  # }
-  
-  
   if ( nrow( goi_info ) == 0 ) {
     warning("Could not retrieve info for gene '", ensembl_gene_id, "'.\n",
             "Maybe it is not a valid gene name?")
@@ -309,7 +306,7 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
     valid_ensembl_id <- grepl(pattern = ensembl_gene_id_regex, x = ensembl_id,
                               ignore.case = F)
     
-    if (!valid_ensembl_id) {
+    if (!all(valid_ensembl_id)) {
       warning(ensembl_gene_id, " is not a valid ensembl gene id!\n")
     }
     
