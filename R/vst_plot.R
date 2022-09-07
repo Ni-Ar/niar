@@ -388,9 +388,6 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   if (return_data) {  return(data) } else { return(cor_plot) }
 }
 
-
-
-
 #' Nice plot to check expression and PSI across ENCODE mouse developmental stages of different tissues.
 #'
 #' @param data_tbl A tibble generated with `get_mouse_tissue_devel_tbl`.
@@ -402,7 +399,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
 #' @param width Width of the plot in cm (numeric). Defaults are already very good.
 #' @param height Height of the plot in cm (numeric). Defaults are already very good.
 #'
-#' @return Either a plot of a pdf.
+#' @return A ggplot2 plot or a pdf.
 #' @import ggplot2 
 #' @import scales
 #' @import Cairo
