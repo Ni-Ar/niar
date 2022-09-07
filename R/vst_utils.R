@@ -19,8 +19,8 @@
 #' @export
 #'
 #' @examples
-#' grep_psi(path_to_vst_PSI_tbl, vst_id) %>%
-#'     tidy_vst_psi()
+#' grep_psi(path_to_vst_PSI_tbl, vst_id = "HsaEX0000001") |>
+#'     tidy_vst_psi() -> psi_tbl
 tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                          quality_col_suffix = "-Q", return_quality_scores = TRUE,
                          return_S1_only = TRUE, verbose = FALSE, add_ID_col = FALSE,
@@ -109,7 +109,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     # Merge all dataframes by populating a list
     vst_psi_tbl %>% 
       extract2(colnames(vst_psi_tbl)[Qual_cols][i]) %>% 
-      str_split_fixed(string = ., pattern = ',', n = num_of_Score_Types) %>% 
+      str_split_fixed(string = ., pattern = ',', n = num_of_Score_Types) |> 
       as.data.frame() %>% 
       setNames(., paste(colnames(vst_psi_tbl)[Qual_cols][i], 
                         c("S1", "S2", "S3", "S4", "S5"), 
@@ -147,10 +147,10 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   pivot_longer(data = vst_psi_tbl_Q[, c(ID_cols, Qual_cols_Score )],
                cols = colnames(vst_psi_tbl_Q)[Qual_cols_Score],
                names_to = "Quality_Score",
-               values_to = "Quality_Score_Value") %>%
+               values_to = "Quality_Score_Value") |>
     # Change cols to make it compatible with joining
-    dplyr::mutate(Quality_Score_Type = gsub(".*Q_", "", Quality_Score, perl = T)) %>%
-    dplyr::mutate(Sample = str_remove(Quality_Score, "\\-Q_S[1-5]$")) %>% 
+    dplyr::mutate(Quality_Score_Type = gsub(".*Q_", "", Quality_Score, perl = T)) |>
+    dplyr::mutate(Sample = str_remove(Quality_Score, "\\-Q_S[1-5]$")) |> 
     dplyr::select(-Quality_Score) -> lng_vst_psi_quality_tbl
   
   # Reshape to long format the PSI columns without the Quality info
@@ -223,7 +223,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     if (vst_compare_tbl) {
       cols_to_return <- c(cols_to_return, "dPSI")
     }
-    select(tidy_vst_psi_tbl, cols_to_return) %>%
+    select(tidy_vst_psi_tbl, cols_to_return) |>
       unique() ->  tidy_vst_psi_tbl
   } else {
     stop("return_quality_scores must me a logical (TRUE or FALSE)!")
@@ -341,7 +341,7 @@ guess_species <- function(vastid, latin_name = F) {
 #' @export
 #'
 #' @examples
-#' #' grep_psi(path_to_vst_tbl, vst_id) %>%
+#' #' grep_psi(path_to_vst_tbl, vst_id) |>
 #'     tidy_vst_psi()
 grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE, 
                      clear_tmp = TRUE, fast_grep = TRUE, split_temp = TRUE) {
@@ -497,7 +497,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
 #' @export
 #'
 #' @examples
-#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) %>%
+#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
 #'     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
 grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id, 
                                   tmp_dir = tempdir(), verbose = FALSE, 
