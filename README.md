@@ -14,7 +14,7 @@ devtools::install_github("Ni-Ar/niar")
 
 ### Load the local repository (only for CRG users)
 
-If you have a [CRG](https://www.crg.eu/) user account, instead of installing, you can load the R package at the beginning of your session. Log in with your credentials on the [CRG RStudio Server IDE](http://rstudio4.linux.crg.es/) (R version 4.0.3) and run:
+If you have a [CRG](https://www.crg.eu/) user account, instead of installing, you can load the R package at the beginning of your session. Log in with your credentials on the [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/) (R version 4.2.1) and run:
 ```R
 devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
 ```
