@@ -6,10 +6,13 @@
 #' @param ignore.case Logical. Convert all `x` to upper case.
 #' @param verbose Logical. Print out info.
 #'
-#' @return
+#' @return A character corresponding to the longest common suffix.
 #' @export
 #'
 #' @examples
+#' sample_names <- c("A_sample1", "B_sample1", "C_sample1", "D_sample2", "E_sample2")
+#' longest_most_abundant_common_suffix(x = sample_names)
+#' # Returns: "_sample1"
 longest_most_abundant_common_suffix <- function(x, k = 80, max_suffixes = 4, 
                                                 ignore.case = FALSE, 
                                                 verbose = FALSE) {
