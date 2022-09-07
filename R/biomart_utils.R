@@ -19,8 +19,8 @@
 #' @param out_dir Either `FALSE` (default) or a character specifying a path where to save the biomaRt object. If directory does not exist it will be created.
 #' @param verbose Logical. Print info messages? Default `FALSE`.
 #'
-#' @return
-#' @import biomaRt
+#' @return A biomaRt ensembl object
+#' @importFrom biomaRt useMart listDatasets listEnsemblArchives useEnsembl
 #' @export
 #'
 #' @examples
@@ -99,7 +99,6 @@ gimme_mart <- function( species = "hsapiens", latest = TRUE,
       if (verbose) {
         message("Creating Mart object with latest version ", DB_v, 
                 " released on ", DB_v_date )
-        
       }
       
       DB_v_date <- sub(" ", "_", DB_v_date)
@@ -183,8 +182,8 @@ gimme_mart <- function( species = "hsapiens", latest = TRUE,
 #' @param verbose Logical. Do you want me to be chatty?
 #' @param mRt_objct A `biomaRt` object created with the `gimme_mart()` function.
 #'
-#' @return
-#' @import biomaRt
+#' @return A character corresponding to an ensembl gene name or a `data.frame`.
+#' @importFrom biomaRt getBM 
 #' @export
 #'
 #' @examples
@@ -255,8 +254,8 @@ ensembl_id_2_gene_name <- function(ensembl_gene_id, only_gene_name = TRUE,
 #' @param verbose Logical. Do you want me to be chatty?
 #' @param mRt_objct A `biomaRt` object created with the `gimme_mart()` function.
 #'
-#' @return
-#' @import biomaRt
+#' @return A character corresponding to an ensembl gene ID or a `data.frame`.
+#' @importFrom biomaRt getBM 
 #' @export
 #'
 #' @examples
@@ -331,8 +330,8 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
 #' @param verbose Logical. Do you want me to be chatty?
 #' @param mRt_objct A `biomaRt` object created with the `gimme_mart()` function.
 #'
-#' @return
-#' @import biomaRt
+#' @return A character corresponding to an entrez ID or a `data.frame`.
+#' @importFrom biomaRt getBM 
 #' @export
 #'
 #' @examples

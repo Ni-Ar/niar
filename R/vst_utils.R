@@ -10,9 +10,8 @@
 #' @param add_ID_col Logical. Do you want to add an extra `col_ID_name` to the output data.frame? Default `FALSE`.
 #' @param col_ID_name Extra column that could be used to add a new identifier to the data. Default is "banana".
 #'
-#' @return A reshaped data.frame in long format as tibble.
+#' @return A reshaped `data.frame` in long format as `tibble`.
 #' @import dplyr
-#' @importFrom magrittr extract extract2 %>%
 #' @import stringr
 #' @import tidyr
 #' 
@@ -107,11 +106,14 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     
     # Split list of 5 elements by comma in quality score columns 
     # Merge all dataframes by populating a list
-    vst_psi_tbl %>% 
-      extract2(colnames(vst_psi_tbl)[Qual_cols][i]) %>% 
-      str_split_fixed(string = ., pattern = ',', n = num_of_Score_Types) |> 
-      as.data.frame() %>% 
-      setNames(., paste(colnames(vst_psi_tbl)[Qual_cols][i], 
+    vst_psi_tbl |>
+      # Extract the quality score column i
+      select(colnames(vst_psi_tbl)[Qual_cols][i]) |>
+      # turn values to character
+      pull() |>
+      str_split_fixed(pattern = ',', n = num_of_Score_Types) |> 
+      as.data.frame() |>
+      setNames(paste(colnames(vst_psi_tbl)[Qual_cols][i], 
                         c("S1", "S2", "S3", "S4", "S5"), 
                         sep = "_")) -> li_vast_Q_cols[[i]]
   }
@@ -149,9 +151,9 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
                names_to = "Quality_Score",
                values_to = "Quality_Score_Value") |>
     # Change cols to make it compatible with joining
-    dplyr::mutate(Quality_Score_Type = gsub(".*Q_", "", Quality_Score, perl = T)) |>
-    dplyr::mutate(Sample = str_remove(Quality_Score, "\\-Q_S[1-5]$")) |> 
-    dplyr::select(-Quality_Score) -> lng_vst_psi_quality_tbl
+    mutate(Quality_Score_Type = gsub(".*Q_", "", Quality_Score, perl = T)) |>
+    mutate(Sample = str_remove(Quality_Score, "\\-Q_S[1-5]$")) |> 
+    select(-Quality_Score) -> lng_vst_psi_quality_tbl
   
   # Reshape to long format the PSI columns without the Quality info
   pivot_longer(data = vst_psi_tbl[, c(ID_cols, PSI_cols)],
@@ -175,7 +177,6 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   tidy_vst_psi_tbl <- left_join(lng_vst_psi_tbl, lng_vst_psi_quality_tbl,
                                        by = c("GENE", "EVENT", "COORD", "LENGTH",
                                               "FullCO", "COMPLEX","Sample") )
-  
   
   # Add back the dPSI column if present
   if(vst_compare_tbl == TRUE) {
@@ -242,12 +243,12 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
 #' @param expression_unit Character: either `TPM` or `cRPKM` based on the gene expression unit in `data`.
 #' @param ID_cols The columns names to use as IDs in `data`
 #'
-#' @return
+#' @return A reshaped `data.frame` in long format as `tibble`.
 #' @import tidyr
 #' @export
 #'
 #' @examples
-#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) %>%
+#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
 #'     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
 tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
                           ID_cols = c("ID", "NAME", "Names", "ensembl_gene_id")) {
@@ -263,8 +264,6 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
     # While the not normalised expression tables as 2 columns called ID and NAME
     ID_cols <- "Names"
   }
-  
-  # suppressMessages( require('tidyr') )
   
   # Select the expression columns in the data table
   sample_cols <- which(!colnames(data) %in% ID_cols)
@@ -589,7 +588,7 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
 #' @export
 #'
 #' @examples
-#' read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") %>%
+#' read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") |>
 #'    tidy_vst_psi()
 #'  
 read_vst_tbl <- function(path, verbose = FALSE, ...) {
