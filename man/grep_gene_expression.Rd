@@ -33,6 +33,6 @@ a data.frame
 Function to grep the expression values of a gene from a vast-tools output table.
 }
 \examples{
-grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) \%>\%
+grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
 }

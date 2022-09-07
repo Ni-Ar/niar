@@ -34,6 +34,6 @@ a data.frame
 Function to grep the PSI values of an as event from a vast-tools output table.
 }
 \examples{
-#' grep_psi(path_to_vst_tbl, vst_id) \%>\%
+#' grep_psi(path_to_vst_tbl, vst_id) |>
     tidy_vst_psi()
 }

@@ -38,6 +38,9 @@ gimme_mart(
 
 \item{verbose}{Logical. Print info messages? Default \code{FALSE}.}
 }
+\value{
+A biomaRt ensembl object
+}
 \description{
 Handy function to create a biomaRt R object based on the ENSEMBL database to be used when querying biomart
 }

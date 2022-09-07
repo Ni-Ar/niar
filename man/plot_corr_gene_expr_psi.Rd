@@ -8,7 +8,7 @@ plot_corr_gene_expr_psi(
   data,
   quality_thrshld = "N",
   external_gene_name,
-  vastid,
+  vst_id,
   unit,
   text = FALSE,
   beautify = FALSE,
@@ -22,34 +22,55 @@ plot_corr_gene_expr_psi(
 )
 }
 \arguments{
-\item{data}{}
+\item{data}{A \code{data.frame} with these column names: "Quality_Score_Value", "Gene_Expr", "PSI", "GENE", and "Sample". Header is case-sensitive.}
 
-\item{quality_thrshld}{}
+\item{quality_thrshld}{vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation \href{https://github.com/vastgroup/vast-tools#combine-output-format}{here} under "Column 8, score 1".}
 
-\item{external_gene_name}{}
+\item{external_gene_name}{An ensembl-gene-name.}
 
-\item{vastid}{}
+\item{vst_id}{vast-tools AS event ID.}
 
-\item{unit}{}
+\item{unit}{Was the vast-tools gene expression quantified in \code{cRPKMs} or \code{TPMs}?}
 
-\item{text}{}
+\item{text}{Logical. Do you want to label the point in the plot. Uses \code{ggrepel}. Default \code{FALSE}.}
 
-\item{beautify}{}
+\item{beautify}{Remove pre-fixed or post-fixes from sample names. Kinda experimental.}
 
-\item{xzero}{}
+\item{xzero}{Logical. Should x-axis start from zero?}
 
-\item{colour}{}
+\item{colour}{Either 'score' or 'PSI' to indicate if the points should be coloured by the AS event score (see \code{quality_thrshld}) or the PSI level.}
 
-\item{save_plot}{}
+\item{save_plot}{Logical. Do you wanna save the plot to pdf? Uses \code{Cairo} as device.}
 
-\item{out_plot_dir}{}
+\item{out_plot_dir}{Path specifing location where to save the plot pdf.}
 
-\item{verbose}{}
+\item{verbose}{Lofical, print info on correlation.}
 
-\item{return_data}{}
+\item{return_data}{Logical. Do not plot the data but just return the data used to plot. Default \code{FALSE}.}
 
-\item{subttl}{}
+\item{subttl}{Character string in case you wanna add some info to the subtitle.}
+}
+\value{
+A ggplot2 plot or a \code{data.frame}.
 }
 \description{
 Plot gene expression vs alternatively spliced event PSI
+}
+\examples{
+# 1. Get PSI values
+grep_psi(inclusion_tbl = psi_tbl_path, vst_id = "HsaEX0000001") |>
+       tidy_vst_psi() -> psi_tbl
+       
+# 2. Get gene expression values
+grep_gene_expression(vst_expression_tbl = expression_tbl_path,
+                     ensembl_gene_id = gene_name ) |>
+    tidy_vst_expr() |>
+# 3. Join gene expression table to PSI table
+    left_join(psi_tbl, by = "Sample") |> 
+# 4. Calculate correlations and plot
+    plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
+                            vastid = "HsaEX0000001", text = TRUE,
+                            beautify = FALSE, xzero = FALSE, verbose = FALSE,
+                            subttl = "A great subtitle", 
+                            out_plot_dir = path_out, save_plot = TRUE)  
 }

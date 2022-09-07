@@ -20,7 +20,7 @@ A tibble
 Wrapper for readr::read_delim for a tab delimited table. Fastest way to read this kind of data into \code{R}.
 }
 \examples{
-read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") \%>\%
+read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") |>
    tidy_vst_psi()
  
 }

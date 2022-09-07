@@ -36,12 +36,12 @@ tidy_vst_psi(
 \item{col_ID_name}{Extra column that could be used to add a new identifier to the data. Default is "banana".}
 }
 \value{
-A reshaped data.frame in long format as tibble.
+A reshaped \code{data.frame} in long format as \code{tibble}.
 }
 \description{
 Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
 }
 \examples{
-grep_psi(path_to_vst_PSI_tbl, vst_id) \%>\%
-    tidy_vst_psi()
+grep_psi(path_to_vst_PSI_tbl, vst_id = "HsaEX0000001") |>
+    tidy_vst_psi() -> psi_tbl
 }

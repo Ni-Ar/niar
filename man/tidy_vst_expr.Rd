@@ -17,10 +17,13 @@ tidy_vst_expr(
 
 \item{ID_cols}{The columns names to use as IDs in \code{data}}
 }
+\value{
+A reshaped \code{data.frame} in long format as \code{tibble}.
+}
 \description{
 Reshape a wide vast-tools expression table to a long format
 }
 \examples{
-grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) \%>\%
+grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
 }

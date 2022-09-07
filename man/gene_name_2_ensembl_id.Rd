@@ -20,6 +20,9 @@ gene_name_2_ensembl_id(
 
 \item{mRt_objct}{A \code{biomaRt} object created with the \code{gimme_mart()} function.}
 }
+\value{
+A character corresponding to an ensembl gene ID or a \code{data.frame}.
+}
 \description{
 Convenient converter from gene name to ensembl ID
 }

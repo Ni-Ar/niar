@@ -68,5 +68,19 @@ showme_PCA2D(mat)
 showme_PCA2D(mat = mat,  mt = mt, mcol = "sample_name", m_fill = "replicate",
              x = 3, show_stats = T, m_label = F)
              
-showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)              
+showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", n_loadings = 12)  
+
+# Working with metadata
+data.frame(sample_name = paste0("Sample", 0:9),
+           replicate = c(rep(c(1:3), 3), 1), 
+           condition = c(rep("A", 5), rep("Z", 5)),
+           stringsAsFactors = FALSE) -> mt            
+
+showme_PCA2D(mat = mat, mt = mt) # does not work cause `mcol` is not specified.
+
+# This works instead because the `mcol` is specified.
+showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", m_label = "replicate")
+
+# This throws a warning dropping `mcol` as there's no metadata provided.
+showme_PCA2D(mat = mat, mcol = "sample_name") 
 }

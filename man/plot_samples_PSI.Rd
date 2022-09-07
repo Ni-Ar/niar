@@ -18,8 +18,8 @@ A ggplot2 plot
 Plot the PSI of all samples in a data.frame
 }
 \examples{
-read_vst_tbl(path = "file/inclusion/table.tab", show_col_types = FALSE) \%>\%
-     tidy_vst_psi(verbose = F) \%>\%
-     subset(abs(dPSI) >= 80 ) \%>\%
+read_vst_tbl(path = "file/inclusion/table.tab", show_col_types = FALSE) |>
+     tidy_vst_psi(verbose = F) |>
+     subset(abs(dPSI) >= 80 ) |>
      plot_samples_PSI()
 }
