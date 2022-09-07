@@ -284,7 +284,7 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
 
 #' Given a vast-tools AS event ID, return the species name.
 #'
-#' @param vastid An alternative splicing event name from vast-tools.
+#' @param vst_id An alternative splicing event name from vast-tools.
 #' @param latin_name Logical, whether or not you want the scientific name of the species.
 #'
 #' @return A character
@@ -293,12 +293,12 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
 #' @export
 #'
 #' @examples
-#' guess_species(vastid = "HsaEX000001")
+#' guess_species(vst_id = "HsaEX000001")
 #' # Human
-guess_species <- function(vastid, latin_name = F) {
+guess_species <- function(vst_id, latin_name = F) {
   
   # suppressMessages( require('stringr') )
-  guessed_species <- stringr::str_extract(string = vastid, 
+  guessed_species <- stringr::str_extract(string = vst_id, 
                                           pattern = "^[A-Z][a-z][a-z]")
   
   if ( latin_name == FALSE) {
@@ -370,12 +370,12 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
   }
   
   # Check vst_id 
-  if ( missing(vst_id) ) { stop("You didn't specified a vastID!") } 
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
   
-  # If there's more than one vastID in the query
+  # If there's more than one vst_id in the query
   if ( length(vst_id) >= 2 ) {
     
-    # Turn the vastID into a "greppable" multiple vastID
+    # Turn the vst_id into a "greppable" multiple vst_id
     vst_id <- paste(vst_id, collapse = "|")
     
     # grep searches an extended regular expression
@@ -396,7 +396,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
     # 2 -- Get AS event PSI
     get_exon_line <- paste0(grep_command, "'", vst_id, "' ", 
                             inclusion_tbl, " > ",
-                            tmp_dir, "/tmp_vastID_PSI.tab")
+                            tmp_dir, "/tmp_vst_id_PSI.tab")
     system(command = get_exon_line)
     
     
@@ -405,7 +405,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
     get_header_n_exon_line <- paste0( "cat <(head -n1 ", inclusion_tbl,
                                       ") <(", grep_command, "'", vst_id, "' ", 
                                       inclusion_tbl, ") > ", tmp_dir,
-                                      "/tmp_vastID_PSI.tab")
+                                      "/tmp_vst_id_PSI.tab")
     
     # the R system() command calls the bourne shell (sh) instead of the bourne again shell (bash)
     # to overcome this print the command in the bourne shell and pipe the output into bash
@@ -418,7 +418,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
   }
   
   # 3 -- Check that temp file is not empty
-  exon_PSI_tmp_info <- file.info(file.path(tmp_dir, "tmp_vastID_PSI.tab"))
+  exon_PSI_tmp_info <- file.info(file.path(tmp_dir, "tmp_vst_id_PSI.tab"))
   
   if ( exon_PSI_tmp_info$size == 0) {
     stop("Couldn't find event ", vst_id, " in table ",
@@ -432,7 +432,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
                              header = T, check.names = F, stringsAsFactors = F)
     
     # 5 -- Read in AS event vast table 
-    tmp_exon <- read.delim(file = file.path(tmp_dir, "tmp_vastID_PSI.tab"),
+    tmp_exon <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
                            header = F, check.names = F, stringsAsFactors = F)
     
     # 6 -- Merge header and exon processed vast table
@@ -441,11 +441,11 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
     
   } else if ( split_temp == FALSE ) {
     # 4, 5, 6 -- Read in AS event vast table 
-    vst_psi_tbl <- read.delim(file = file.path(tmp_dir, "tmp_vastID_PSI.tab"),
+    vst_psi_tbl <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
                               header = T, check.names = F, stringsAsFactors = F)
     
   } else {
-    stop("Something went wrong when reading tmp_vastID_PSI.tab in\n", tmp_dir)
+    stop("Something went wrong when reading tmp_vst_id_PSI.tab in\n", tmp_dir)
   }
   
   # 7 -- Info on what was found
@@ -476,7 +476,7 @@ grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE
       file.remove( file.path(tmp_dir, "tmp_inclusion_tbl_hearder.tab") )
     }
     
-    file.remove( file.path(tmp_dir, "tmp_vastID_PSI.tab") )
+    file.remove( file.path(tmp_dir, "tmp_vst_id_PSI.tab") )
     if ( verbose ) { message("Temporary files have been removed.") } 
   }
   # 9 -- Return a tbl
@@ -629,7 +629,7 @@ get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL,
     
     # Check params 
     if ( missing(ensembl_gene_id) ) { stop("You didn't specified an ENSEMBL gene ID!") } 
-    if ( missing(vst_id) ) { stop("You didn't specified a vastID!") } 
+    if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
     if ( !is.logical(filter_tbl) ) { stop("filter_tbl must be TRUE or FALSE")}
     
     data_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/data')
