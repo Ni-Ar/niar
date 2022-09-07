@@ -97,7 +97,7 @@ Since I use `vast-tools` quite often I made a couple of functions to easily impo
 
 ```R
 grep_psi(inclusion_tbl = file.path(dir_location, "INCLUSION_LEVELS_FULL-hg38-n-v251.tab"), 
-         vst_id = c("HsaEX0000001", "HsaEX0000002"), tmp_dir = tempdir()) %>%
+         vst_id = c("HsaEX0000001", "HsaEX0000002"), tmp_dir = tempdir()) |>
     tidy_vst_psi() 
 ```
 
