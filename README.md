@@ -90,7 +90,7 @@ More details can be found in the vignette linked below.
 Since I use `vast-tools` quite often I made a couple of functions to easily import the text output tables into `R`.   Namely, `grep_psi()`  or `grep_gene_expression()` import the PSI of an AS events or gene expression levels that can then be turned into a long-format dataframe with the accompanying tidy functions `tidy_vst_psi()` or `tidy_vst_expr()`. These functions work great with the `magrittr` pipe (`%>%`) or the base `R` pipe operator (`|>`) as in:
 ```R
 grep_psi(inclusion_tbl = file.path(dir_location, "INCLUSION_LEVELS_FULL-hg38-n-v251.tab"), 
-         vst_id = c("HsaEX0000001", "HsaEX0000002"), tmp_dir = tempdir()) |>
+         vst_id = c("HsaEX0000001", "HsaEX0000002")) |>
     tidy_vst_psi() 
 ```
 
