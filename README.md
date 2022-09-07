@@ -51,40 +51,34 @@ To solve this go to: Tools Menu (on top of the windos) > Global Options > Genera
 ## Quick Start
 
 Currently this package contains:
-
-- one function to perform Principal Component Analysis (PCA)
-- some functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression with some plot functions to quicly glimpse into the data (e.g. `plot_corr_gene_expr_psi()`).
-- [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions
-- [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions
+- one function to perform Principal Component Analysis (PCA) in 2D with lots of option to enrich visualisation and exploration. See vignette below for more details.
+- functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression with some plot functions to quickly glimpse into the data (e.g. `plot_corr_gene_expr_psi()`).
+- Quick plot function to explore [Mouse Development ENCODE](https://www.encodeproject.org/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus) data `plot_mouse_tissue_devel()` which uses data I preprocessed  fetched with `get_mouse_tissue_devel_tbl()`. Currently works only on the  [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/).
+- [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions.
 
 #### PCA
 
 The easiest way to make a PCA assuming `mat` is your numerical matrix is:
-
 ```R
 showme_PCA2D(mat)
 ```
 
 To know more you can type:
-
 ```R
 ?showme_PCA2D()
 ```
 
 The underlying function is `prcomp` and you can pass extra arguments with `...` for example:
-
 ```R
 showme_PCA2D(mat, scale. = T, center = F)
 ```
 
 Extra info can be added from a dataframe  ( `mt`) which serves as a metadata. To specify which column of the dataframe contains the `colnames` of the matrix `mat` use `mcol`. In the following example the `mt` contains a column called `sample_name`:
-
 ```R
 showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", show_variance = T, show_stats = T)
 ```
 
 To show the PCA loadings:
-
 ```R
 showme_PCA2D(mat = mat, n_loadings = 12)
 ```
@@ -94,7 +88,6 @@ More details can be found in the vignette linked below.
 #### vast-tools
 
 Since I use `vast-tools` quite often I made a couple of functions to easily import the text output tables into `R`.   Namely, `grep_psi()`  or `grep_gene_expression()` import the PSI of an AS events or gene expression levels that can then be turned into a long-format dataframe with the accompanying tidy functions `tidy_vst_psi()` or `tidy_vst_expr()`. These functions work great with the `magrittr` pipe (`%>%`) or the base `R` pipe operator (`|>`) as in:
-
 ```R
 grep_psi(inclusion_tbl = file.path(dir_location, "INCLUSION_LEVELS_FULL-hg38-n-v251.tab"), 
          vst_id = c("HsaEX0000001", "HsaEX0000002"), tmp_dir = tempdir()) |>
@@ -108,6 +101,8 @@ which will return a dataframe. These functions are basically “hacks” that ca
 [Link for PCA](https://htmlpreview.github.io/?https://github.com/Ni-Ar/niar/blob/main/doc/Introduction_Dim_Reduction.html).
 
 ### To do
-- [ ] Fix `gene_name_2_ensembl_id` warning when returning more than one ID (put `all()` `if (!valid_ensembl_id)` )
-- [ ] The fun `plot_corr_gene_expr_psi` should do a subset for `vastid=` if provided more than one from the `psi_tbl`
-- [ ]  The fun `plot_corr_gene_expr_psi`  more breaks on x-axis. `scale_x_continous(n.breaks = 10)`
+
+- [ ] Make vignettes for `biomaRt` functions and vast-tools utility and plotting functions.
+- [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
+- [ ] Add my [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions.
+
