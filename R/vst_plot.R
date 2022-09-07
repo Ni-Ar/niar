@@ -115,7 +115,7 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #' @param subttl Character string in case you wanna add some info to the subtitle.
 #'
 #' @return A ggplot2 plot or a `data.frame`.
-#' @import ggplot
+#' @import ggplot2
 #' @import ggrepel
 #' @import Cairo
 #' @import dplyr
