@@ -9,10 +9,10 @@
 #' @export
 #'
 #' @examples
-#' read_vst_tbl(path = 'path/to/compare/inclusion/tbl', show_col_types = FALSE) %>%
-#'    tidy_vst_psi(verbose = FALSE) %>%
+#' read_vst_tbl(path = 'path/to/compare/inclusion/tbl', show_col_types = FALSE) |>
+#'    tidy_vst_psi(verbose = FALSE) |>
 #'    hist_dPSI(by_complex = TRUE)
-hist_dPSI <- function(data, by_complex = FALSE) {
+plot_hist_dPSI <- function(data, by_complex = FALSE) {
     if ( !any(colnames(data) == 'dPSI') ) {
         stop("The input data.frame must have a column called 'dPSI'. I only see:\n",
              colnames(data) )
@@ -56,9 +56,9 @@ hist_dPSI <- function(data, by_complex = FALSE) {
 #' @export
 #'
 #' @examples
-#' read_vst_tbl(path = "file/inclusion/table.tab", show_col_types = FALSE) %>%
-#'      tidy_vst_psi(verbose = F) %>%
-#'      subset(abs(dPSI) >= 80 ) %>%
+#' read_vst_tbl(path = "file/inclusion/table.tab", show_col_types = FALSE) |>
+#'      tidy_vst_psi(verbose = F) |>
+#'      subset(abs(dPSI) >= 80 ) |>
 #'      plot_samples_PSI()
 plot_samples_PSI <- function(data, simplify_names = TRUE) {
     
@@ -99,27 +99,48 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 
 #' Plot gene expression vs alternatively spliced event PSI
 #'
-#' @param data 
-#' @param quality_thrshld 
-#' @param external_gene_name 
-#' @param vastid 
-#' @param unit 
-#' @param text 
-#' @param beautify 
-#' @param xzero 
-#' @param colour 
-#' @param save_plot 
-#' @param out_plot_dir 
-#' @param verbose 
-#' @param return_data 
-#' @param subttl 
+#' @param data A `data.frame` with these column names: "Quality_Score_Value", "Gene_Expr", "PSI", "GENE", and "Sample". Header is case-sensitive.
+#' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
+#' @param external_gene_name An ensembl-gene-name. 
+#' @param vst_id vast-tools AS event ID.
+#' @param unit Was the vast-tools gene expression quantified in `cRPKMs` or `TPMs`?
+#' @param text Logical. Do you want to label the point in the plot. Uses `ggrepel`. Default `FALSE`.
+#' @param beautify Remove pre-fixed or post-fixes from sample names. Kinda experimental.
+#' @param xzero Logical. Should x-axis start from zero?
+#' @param colour Either 'score' or 'PSI' to indicate if the points should be coloured by the AS event score (see `quality_thrshld`) or the PSI level. 
+#' @param save_plot Logical. Do you wanna save the plot to pdf? Uses `Cairo` as device.
+#' @param out_plot_dir Path specifing location where to save the plot pdf.
+#' @param verbose Lofical, print info on correlation.
+#' @param return_data Logical. Do not plot the data but just return the data used to plot. Default `FALSE`.
+#' @param subttl Character string in case you wanna add some info to the subtitle.
 #'
-#' @return
+#' @return A ggplot2 plot or a `data.frame`.
+#' @import ggplot
+#' @import ggrepel
+#' @import Cairo
+#' @import dplyr
+#' @import XICOR
 #' @export
 #'
 #' @examples
+#' # 1. Get PSI values
+#' grep_psi(inclusion_tbl = psi_tbl_path, vst_id = "HsaEX0000001") |>
+#'        tidy_vst_psi() -> psi_tbl
+#'        
+#' # 2. Get gene expression values
+#' grep_gene_expression(vst_expression_tbl = expression_tbl_path,
+#'                      ensembl_gene_id = gene_name ) |>
+#'     tidy_vst_expr() |>
+#' # 3. Join gene expression table to PSI table
+#'     left_join(psi_tbl, by = "Sample") |> 
+#' # 4. Calculate correlations and plot
+#'     plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
+#'                             vastid = "HsaEX0000001", text = TRUE,
+#'                             beautify = FALSE, xzero = FALSE, verbose = FALSE,
+#'                             subttl = "A great subtitle", 
+#'                             out_plot_dir = path_out, save_plot = TRUE)  
 plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N", 
-                                    external_gene_name, vastid, 
+                                    external_gene_name, vst_id, 
                                     unit, text = FALSE,
                                     beautify = FALSE, xzero = TRUE, 
                                     colour = c('score', 'PSI'), 
@@ -132,34 +153,35 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
          "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
   }
   
-  if ( !any( c( 'TPM', 'cRPKM') %in% unit) ) {
-    stop("unit must be either TPM or cRPKM")
+  if ( !any( c('TPM', 'cRPKM') %in% unit) ) {
+    stop("unit must be either 'TPM' or 'cRPKM'")
   }
   
   if ( !any( c('score', 'PSI') %in% colour ) ) {
-    stop("unit must be either TPM or cRPKM")
+    stop("colour must be either 'score' or 'PSI'")
   }
   
-  # if using default specification set colour-coding to 'score
+  # if using default specification set colour-coding to 'score'
   if ( all(colour == c('score', 'PSI') )) { colour <- 'score' }
   
   
   data_required_cols <- c("Quality_Score_Value", "Gene_Expr", "PSI", "GENE", "Sample" )
   if ( all(data_required_cols %in% colnames(data) ) ) {
-    # Load required packages
-    # require("dplyr") ; require("ggplot2") ; require("magrittr") ; 
-    # If XICOR is not yet installed, try to install it now
-    if (! "XICOR" %in% installed.packages()[,"Package"] ) { 
-      warning("The R package 'XICOR' is not installed, I'm gonna install it now.")
-      install.packages("XICOR")
-    }
-    # require("XICOR")
+    
+    # # If XICOR is not yet installed, try to install it now
+    # if (! "XICOR" %in% installed.packages()[,"Package"] ) { 
+    #   warning("The R package 'XICOR' is not installed, I'm gonna install it now.")
+    #   install.packages("XICOR")
+    # }
     
   } else{
     missing_col <- which( ! data_required_cols %in% colnames(data_required_cols) )
     message("Input dataframe is missing the required columns: ", 
             paste0(data_required_cols[missing_col], collapse = " ") )
   }
+  
+  # Subset input data only for the one vst_id, in case data contains more than one.
+  data <- subset(data, EVENT == vst_id)
   
   # --- PLOT LAYOUT ----
   theme_classic() +
@@ -207,13 +229,14 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   expr_psi_prsn <- round(expr_psi_prsn, 3)
   
   # Chatterjee ( http://arxiv.org/abs/1909.10140 )
+  # Remember this is not symmetric 
   expr_psi_chttrj <- calculateXI(xvec = data$Gene_Expr, yvec = data$PSI, 
                                  simple = T, seed = 16)
   expr_psi_chttrj <- round(expr_psi_chttrj, 3)
   
   if ( verbose ) {
     message("Expression vs PSI correlations:\n",
-            "GENE: ", external_gene_name, "\tID: ", vastid, "\n",
+            "GENE: ", external_gene_name, "\tID: ", vst_id, "\n",
             "Spearman: ", expr_psi_sprmn, " Pearson: ", expr_psi_prsn,
             " Chatterjee: ", expr_psi_chttrj)
   }
@@ -232,13 +255,13 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     if ( nchar_common_prefix > 0 ) {
       common_prefix <- substr(random_names[1], start = 1, stop = nchar_common_prefix)
       if (verbose) { message("Found prefix: ", common_prefix) }
-      data <- data %>%
+      data <- data |>
         dplyr::mutate(Pretty_Sample = gsub(pattern = paste0("^", common_prefix),
                                            replacement = "", x = Sample,
                                            ignore.case = T, perl = F))
     } else {
       if (verbose) { message("Couldn't find common prefix.") }
-      data <- data %>% dplyr::mutate(Pretty_Sample =  Sample)
+      data <- data |> dplyr::mutate(Pretty_Sample =  Sample)
     }
     
     # Try to remove the longest AND most abundant common suffix from 
@@ -249,13 +272,13 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     if ( length(nchar(common_suffix)) > 0 ) {
       
       if (verbose) { message("Found suffix: ", common_suffix) }
-      data <- data %>%
+      data <- data |>
         dplyr::mutate(Pretty_Sample = gsub(pattern = paste0(common_suffix, "$"),
                                            replacement = "", x = Sample,
                                            ignore.case = T, perl = F) )
     } else {
       if (verbose) { message("Couldn't find common prefix.") }
-      data <- data %>% dplyr::mutate(Pretty_Sample =  Sample)
+      data <- data |> dplyr::mutate(Pretty_Sample =  Sample)
     }
     # Maybe in the future this could be improved...?
   }
@@ -263,7 +286,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   # --- PLOT --- 
   AS_EVENT_GENE <- unique(data$GENE)
   
-  info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vastid, " (",
+  info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vst_id, " (",
                      AS_EVENT_GENE, ")", "      ", "Spearman: ", expr_psi_sprmn,
                      ", Pearson: ", expr_psi_prsn, 
                      ", Chatterjee: ", expr_psi_chttrj)
@@ -273,9 +296,10 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     stat_smooth(method = 'lm', formula = 'y ~ x', se = T, level = 0.95,
                 colour = 'black', size = 0.5) +
     coord_cartesian(ylim = c(0, 100), clip = 'off', default = TRUE)  +
+    scale_x_continous(n.breaks = 10) +
     labs(title = info_ttl, x = paste0(external_gene_name, " ", unit),
          subtitle = subttl)  +
-    ylab( bquote(.(AS_EVENT_GENE)~.(vastid)~~Psi) ) +
+    ylab( bquote(.(AS_EVENT_GENE)~.(vst_id)~~Psi) ) +
     niar_theme -> cor_plot
   
   # Decide if gene expression should start from zero or not
@@ -340,7 +364,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     sub_ttl_name <- gsub(pattern = " ", replacement = "_", subttl)
     
     snazzy_plt_name <- paste(external_gene_name, unit, 
-                             vastid, "PSI", filtering_name, sub_ttl_name,
+                             vst_id, "PSI", filtering_name, sub_ttl_name,
                              "expr_psi_correlations.pdf", sep = "_")
     
     # If output plot dir doesn't exists create it.
@@ -354,7 +378,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
            path = out_plot_dir,
            units = "cm",
            width = 18, height = 10,
-           device = "pdf")
+           device = cairo_pdf)
     
     if (verbose) { message("Plot: ", snazzy_plt_name, " saved in:\n", out_plot_dir) }
     
