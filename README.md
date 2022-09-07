@@ -1,13 +1,15 @@
 # My personal `R` package
 
-Here, I collect R functions that I’ve created over time. This is not really stable or robust, the primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. Feedback is welcome! If you find an error please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new).
+Here I collect many `R` functions that I’ve created over time. The primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. So this means that the code could be subject to frequent changes and is "always" in development. Feedback is welcome!
+If you find an error please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new).
 
 ## Installation
+
+There are 2 options to use this package.
 
 ### From this GitHub Repository
 
 If interested in giving it a try:
-
 ```R
 devtools::install_github("Ni-Ar/niar")
 ```
@@ -18,15 +20,16 @@ If you have a [CRG](https://www.crg.eu/) user account, instead of installing, yo
 ```R
 devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
 ```
-This command will  just load the package (from my local repository on the CRG cluster).
-For this step to work properly you must make sure all the  all the required dependencies have been already installed as just loading the package won’t install the dependencies. You can install most of the required packages (this step takes a while) with :
-
+This command will just load the package (from my local repository on the CRG cluster).
+For this step to work properly you must make sure that all the required dependencies have been already installed as just loading the package won’t install the dependencies for you. You can install the required packages with: (this step takes a while)
 ```R
 install.packages(c('devtools', 'matrixStats', 'ggplot2', 'ggrepel', 'scales', 'patchwork',
-                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager', 'XICOR')) 
+                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager', 'XICOR', 'MetBrewer'))
+install.packages('Cairo') 
+# if you get an error installing 'Cairo' you might need to first install the cairographics C library your operating system from https://www.cairographics.org/download/
 ```
-and the following Bioconductor packages:
 
+and the following Bioconductor packages:
 ```R
 BiocManager::install("Biostrings")
 BiocManager::install("biomaRt")
@@ -38,7 +41,6 @@ If you get an error with this method it’s probably cause by the fact that the 
 #### Troubleshooting plots in RStudio server
 
 In order to visualise the plots you might need to select the right graphics device, especially if you get an error that says something like:
-
 ```R
 Error in diff.default(from) : 
   Shadow graphics device error: r error 4 (R code execution error)
@@ -51,12 +53,15 @@ To solve this go to: Tools Menu (on top of the windos) > Global Options > Genera
 ## Quick Start
 
 Currently this package contains:
-- one function to perform Principal Component Analysis (PCA) in 2D with lots of option to enrich visualisation and exploration. See vignette below for more details.
-- functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression with some plot functions to quickly glimpse into the data (e.g. `plot_corr_gene_expr_psi()`).
-- Quick plot function to explore [Mouse Development ENCODE](https://www.encodeproject.org/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus) data `plot_mouse_tissue_devel()` which uses data I preprocessed  fetched with `get_mouse_tissue_devel_tbl()`. Currently works only on the  [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/).
-- [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions.
+- one function to perform Principal Component Analysis (PCA) in 2D with lots of option to enrich visualisation and exploration. See the [vignette](#Vignettes) below for more details.
+- several functions to fetch and parse data analysed with [vast-tools](https://github.com/vastgroup/vast-tools) for alternatively spliced events and gene expression. There are also plotting functions to quickly glimpse into the data (e.g. `plot_corr_gene_expr_psi()`).
+- Some publically available datasets have been packaged in *ad-hoc* funtions to quick plot and explore the data:
+	- [Mouse Development ENCODE](https://www.encodeproject.org/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus) data `plot_mouse_tissue_devel()` which uses data I preprocessed  fetched with `get_mouse_tissue_devel_tbl()`. Currently works only on the  [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/).
+- Some [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions for quick gene IDs conversions (e.g. `ensembl_id_2_gene_name()`).
 
-#### PCA
+More examples grouped by topic are listed below:
+
+### PCA
 
 The easiest way to make a PCA assuming `mat` is your numerical matrix is:
 ```R
@@ -83,24 +88,24 @@ To show the PCA loadings:
 showme_PCA2D(mat = mat, n_loadings = 12)
 ```
 
-More details can be found in the vignette linked below.
+More details can be found in the [vignette](#Vignettes) below.
 
-#### vast-tools
+### vast-tools
 
-Since I use `vast-tools` quite often I made a couple of functions to easily import the text output tables into `R`.   Namely, `grep_psi()`  or `grep_gene_expression()` import the PSI of an AS events or gene expression levels that can then be turned into a long-format dataframe with the accompanying tidy functions `tidy_vst_psi()` or `tidy_vst_expr()`. These functions work great with the `magrittr` pipe (`%>%`) or the base `R` pipe operator (`|>`) as in:
+Since I use `vast-tools` quite often I made functions to easily import the output tables into `R`. Namely, `grep_psi()` or `grep_gene_expression()` import the PSI of an AS events or gene expression levels respectively and parse the data into a long-format dataframe with the accompanying tidy functions `tidy_vst_psi()` or `tidy_vst_expr()`. These functions work great with the `magrittr` pipe (`%>%`) or the base `R` pipe operator (`|>`) as in:
 ```R
 grep_psi(inclusion_tbl = file.path(dir_location, "INCLUSION_LEVELS_FULL-hg38-n-v251.tab"), 
          vst_id = c("HsaEX0000001", "HsaEX0000002")) |>
     tidy_vst_psi() 
 ```
 
-which will return a dataframe. These functions are basically “hacks” that call the system `grep` command write to a temporary file that is then read into R and removed from the system. A better way would  probably be to implement the functions in `Rcpp`.
+These functions are basically “hacks” that call the system `grep` command, write to a temporary file that is then read into R and removed from the system. Maybe a better way would probably be to implement the functions in `Rcpp`.
 
 ## Vignettes
 
 [Link for PCA](https://htmlpreview.github.io/?https://github.com/Ni-Ar/niar/blob/main/doc/Introduction_Dim_Reduction.html).
 
-### To do
+## To do
 
 - [ ] Make vignettes for `biomaRt` functions and vast-tools utility and plotting functions.
 - [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
