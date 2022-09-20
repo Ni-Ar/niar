@@ -4,10 +4,10 @@
 \alias{guess_species}
 \title{Given a vast-tools AS event ID, return the species name.}
 \usage{
-guess_species(vastid, latin_name = F)
+guess_species(vst_id, latin_name = F)
 }
 \arguments{
-\item{vastid}{An alternative splicing event name from vast-tools.}
+\item{vst_id}{An alternative splicing event name from vast-tools.}
 
 \item{latin_name}{Logical, whether or not you want the scientific name of the species.}
 }
@@ -18,6 +18,6 @@ A character
 Given a vast-tools AS event ID, return the species name.
 }
 \examples{
-guess_species(vastid = "HsaEX000001")
+guess_species(vst_id = "HsaEX000001")
 # Human
 }

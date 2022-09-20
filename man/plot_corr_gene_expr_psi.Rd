@@ -69,7 +69,7 @@ grep_gene_expression(vst_expression_tbl = expression_tbl_path,
     left_join(psi_tbl, by = "Sample") |> 
 # 4. Calculate correlations and plot
     plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
-                            vastid = "HsaEX0000001", text = TRUE,
+                            vst_id = "HsaEX0000001", text = TRUE,
                             beautify = FALSE, xzero = FALSE, verbose = FALSE,
                             subttl = "A great subtitle", 
                             out_plot_dir = path_out, save_plot = TRUE)  

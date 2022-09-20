@@ -33,7 +33,7 @@ plot_mouse_tissue_devel(
 \item{height}{Height of the plot in cm (numeric). Defaults are already very good.}
 }
 \value{
-Either a plot of a pdf.
+A ggplot2 plot or a pdf.
 }
 \description{
 Nice plot to check expression and PSI across ENCODE mouse developmental stages of different tissues.
