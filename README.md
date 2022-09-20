@@ -27,8 +27,10 @@ devtools::load_all(path = '/users/mirimia/narecco/software/R/niar')
 This command will just load the package (from my local repository on the CRG cluster).
 For this step to work properly you must make sure that all the required dependencies have been already installed as just loading the package won’t install the dependencies for you. You can install the required packages with: (this step takes a while)
 ```R
-install.packages(c('devtools', 'matrixStats', 'ggplot2', 'ggrepel', 'scales', 'patchwork',
-                   'dplyr', 'tidyr', 'forcats', 'stringr', 'BiocManager', 'XICOR', 'MetBrewer'))
+install.packages(c('devtools', 'matrixStats', 'BiocManager', 'XICOR', 
+                   'ggplot2', 'ggrepel', 'scales', 'patchwork',
+                   'MetBrewer', 'ggalluvial', 'ggfittext'
+                   'dplyr', 'tidyr', 'forcats', 'stringr'))
 install.packages('Cairo') 
 # if you get an error installing 'Cairo' you might need to first install the cairographics C library your operating system from https://www.cairographics.org/download/
 ```
