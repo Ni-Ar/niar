@@ -296,7 +296,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     stat_smooth(method = 'lm', formula = 'y ~ x', se = T, level = 0.95,
                 colour = 'black', size = 0.5) +
     coord_cartesian(ylim = c(0, 100), clip = 'off', default = TRUE)  +
-    scale_x_continous(n.breaks = 10) +
+    scale_x_continuous(n.breaks = 10) +
     labs(title = info_ttl, x = paste0(external_gene_name, " ", unit),
          subtitle = subttl)  +
     ylab( bquote(.(AS_EVENT_GENE)~.(vst_id)~~Psi) ) +
