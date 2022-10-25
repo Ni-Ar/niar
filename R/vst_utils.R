@@ -568,7 +568,7 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
   # 7 -- Fix first column name 
   # If the value in the first column start as an ensembl gene id
   if ( grepl(pattern = "^ENS", x = as.character(vst_expression_tbl[, 1])) ) {
-    if ( verbose ) { message("First column is an ensebl gene id") }
+    if ( verbose ) { message("First column is an ENSEMBL gene id") }
     colnames(vst_expression_tbl)[1] <- "ensembl_gene_id"
   }
   
@@ -588,7 +588,7 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
 #' @export
 #'
 #' @examples
-#' read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") |>
+#' read_vst_tbl(path = "location/to/tab/delimited/inclusion/table/file.tab") |>
 #'    tidy_vst_psi()
 #'  
 read_vst_tbl <- function(path, verbose = FALSE, ...) {
@@ -709,3 +709,164 @@ get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL,
     return(tidy_tbl)
 }
 
+#' Calcualte correlation of one AS event PSI vs many genes expression levels
+#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event
+#' @param vst_id vast-tools alternative splicing event to grep in the inclusion_tbl
+#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM)
+#' @param quality_thrshld 
+#' @param corr_method Either `spearman`, `pearson`, or `kendall` passed to the function `cor()`. 
+#' @param expr_min_mean_fltr Filter out low expressed genes in the table read from `inclusion_tbl`. Defines the minimum row mean expression value across all samples that a gene must have to be selected. 
+#' @param num_genes Return only the top and bottom number of genes. Integer number greater or equal than 1. Default is `NULL` returning all genes.
+#' @param map_ID_2_names Logical. Whether or not to map the ENSEMBL gene IDs to gene names. Can be used only if `num_genes` is specified and the table contains ENSEMBL gene ID (check automatically).
+#' @param species Species character to use to map the ENSEMBL gene ID. Used by `gimme_mart()` to built a bioMaRt object.
+#' @param verbose Print out information
+#' @param ... Extra parameters passed to `cor()` like `use = "complete.obs"`.
+#'
+#' @return
+#' A data.frame()
+#' @export
+#'
+#' @examples
+#' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                    verbose = T, use = "complete.obs")
+all_gene_expr_corr <- function(inclusion_tbl, vst_id,
+                               vst_expression_tbl, 
+                               quality_thrshld = "N",
+                               corr_method = c("spearman", "pearson", "kendall"),
+                               expr_min_mean_fltr = 5,
+                               num_genes = NULL,
+                               map_ID_2_names = FALSE,
+                               species,
+                               verbose = T, ...) {
+  # 1 -- Check input parameters
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
+  if ( missing(corr_method) ) { 
+    stop("You didn't specified an correlation method!",
+         "Use '?cor' read more about what method to use.") 
+  } 
+  if ( ! any( corr_method %in%  c("spearman", "pearson", "kendall") ) ) {
+    message("corr_method must be either:",
+            "'spearman', 'pearson' or, 'kendall'.",
+            "Use '?cor' read more about what method to use.")
+  }  
+  if ( !any(quality_thrshld == c("N", "VLOW", "LOW", "OK", "SOK")) ) {
+    stop("Can't understand the filtering option:\t", quality_thrshld,
+         "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
+  }
+  if (! is.numeric(expr_min_mean_fltr) ) { stop("expr_min_mean_fltr must be a number!")}
+  if (map_ID_2_names == TRUE) {
+    if ( missing(species) ) { 
+      stop("You need to specify the species to use for mapping the ENSEMBL",
+           "gene IDs! Use '?gimme_mart()' to check which species are supported")
+      }
+  }
+  
+  # 2 -- Grep AS Event into a tidy table
+  grep_psi(inclusion_tbl = inclusion_tbl, vst_id = vst_id, verbose = verbose ) |>
+    tidy_vst_psi(verbose = verbose) -> psi_tbl
+  
+  # 3 -- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld 
+  # Set the Score 1 quality values as factors 
+  Quality_Score_Values <- c("N", "VLOW", "LOW", "OK", "SOK")
+  psi_tbl$Quality_Score_Value <- factor(psi_tbl$Quality_Score_Value,
+                                        Quality_Score_Values)
+  
+  num_quality_thrshld <- as.numeric(factor(quality_thrshld, levels = Quality_Score_Values))
+  psi_tbl <- subset(psi_tbl, as.numeric(Quality_Score_Value) >= num_quality_thrshld)
+  
+  # 3-- Dump all gene expression in a table
+  dump <- read_vst_tbl(path = vst_expression_tbl, show_col_types = FALSE)
+  
+  # 4 -- Fix first column name 
+  # If the value in the first column and first row start as an ENSEMBL gene ID
+  if ( grepl(pattern = "^ENS", x = as.character(dump[1, 1]) ) ) {
+    if ( verbose ) { message("First column is an ENSEMBL gene ID") }
+    colnames(dump)[1] <- "ensembl_gene_id"
+    # Specify that these gene ID are mappale
+    mappable <- TRUE
+  }
+  
+  # 5 -- Turn the first column into row names
+  ## Fist check that they are unique names
+  num_rows <- nrow(dump)
+  num_uniq_names <- dump |> pull(var = 1) |> unique() |> length()
+  
+  if (num_rows != num_uniq_names) {
+    stop("The vast-tools gene expression table does NOT have unique",
+         "gene ID! There are ", num_rows, " rows in the table, but only ",
+         num_uniq_names, " gene name IDs.")
+  }
+  # First col to row name
+  dump <- column_to_rownames(dump, var = colnames(dump)[1])
+  
+  # 6 -- Filter out low expressed genes
+  gene_expr_mat <- t(dump[which(rowMeans(dump, na.rm = T) >= expr_min_mean_fltr), ])
+  
+  # 7 -- Filter out samples with no PSI
+  gene_expr_mat <- gene_expr_mat[rownames(gene_expr_mat) %in%  psi_tbl$Sample, ]
+  
+  if (verbose) {
+    message("Gene expression table: ", nrow(gene_expr_mat), " samples x ",
+            ncol(gene_expr_mat), " genes")
+  }
+  
+  # quick check that all samples are there
+  stopifnot(all(psi_tbl$Sample %in% rownames(gene_expr_mat)))
+  
+  # 8 -- Compute correlation of one AS event PSI vs all genes
+  cor(x = psi_tbl$PSI, y = gene_expr_mat, ..., method = corr_method) |>
+    t() |>
+    as.data.frame() |>
+    setNames("Correlation") |>
+    arrange(desc(Correlation)) |>
+    rownames_to_column("gene_name") |>
+    as_tibble() -> genes_corr_df
+  
+  # 9 -- Return only top or bottom genes ranked by correlation
+  if ( all(is.numeric(num_genes), num_genes >= 1) ) {
+    genes_corr_df |> (\(x) {
+      rbind( head(x, num_genes), tail(x, num_genes))
+    })() -> genes_corr_df
+    
+    if (verbose) { 
+      message("Returning only the top and bottom ", num_genes, " genes")
+    }
+    
+    # 10 -- Try to map the ENSEMBL gene IDs
+    if ( map_ID_2_names ) {
+      if (mappable == TRUE) {
+        
+        # Use ENSEMBL's BioMart to map ensembl gene IDs to gene names
+        ensembl <- gimme_mart(verbose = verbose, species = species)
+        
+        # Query for external gene names
+        lapply(genes_corr_df$gene_name, function(x) {
+          ensembl_id_2_gene_name(ensembl_gene_id = x,
+                                 only_gene_name = T,
+                                 mRt_objct = ensembl,
+                                 verbose = verbose)
+        }) |> unlist() -> mapped_gene_names
+        
+        # Add gene names
+        genes_corr_df$external_gene_name <- mapped_gene_names
+        genes_corr_df |>
+          # If gene name not available use ENSEMBL gene ID.
+          mutate(external_gene_name = ifelse(test = is.na(mapped_gene_names),
+                                             yes = gene_name, 
+                                             no = mapped_gene_names)) |>
+          # Order external gene name as factors. Useful for plotting
+          mutate(external_gene_name = fct_reorder(.f = external_gene_name, 
+                                                  .x = rev(Correlation))
+                 ) -> genes_corr_df
+
+      } else if ( mappable == FALSE){
+        warning("These genes ID do not seem to be ENSEMBL gene IDs",
+                "Skipping mapping")
+      } else {
+        stop("Can't figure out if the gene IDs are mappable...")
+      }
+    }
+  }
+  return(genes_corr_df)
+}

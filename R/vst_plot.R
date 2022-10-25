@@ -588,3 +588,103 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
     }
        
 }
+
+#' Nice plot to check the density distribution of the correlation of one AS event PSI vs all genes expression levels.
+#'
+#' @param data A tibble generated with `all_gene_expr_corr`.
+#' @param binwidth Correlation bins width. Default 0.05. 
+#'
+#' @return A ggplot2 plot.
+#' @import ggplot2 
+#' @export
+#'
+#' @examples
+#' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                    verbose = F, use = "complete.obs") |>
+#'                    plot_corr_dist()      
+plot_corr_dist <- function(data, binwidth = 0.05 ){
+  num_genes <- nrow(data)
+  ggplot(data) +
+    aes(x = Correlation) +
+    geom_histogram(aes(fill = ..x..), binwidth = binwidth) +
+    geom_density(aes( y = binwidth * ..count..) ) + 
+    geom_vline(xintercept = 0, linetype = 'solid') +
+    scale_fill_gradient2(low = "dodgerblue", mid = "white",
+                         midpoint = 0, high = "firebrick3",
+                         guide = "none") +
+    scale_x_continuous(n.breaks = 10) +
+    scale_y_continuous(n.breaks = 10) +
+    coord_cartesian(expand = F) +
+    labs(x = "Correlation", y = "Number of genes",
+         title = paste0("Distribution of the correlation of one AS event PSI ", 
+                        "against ", num_genes, " genes") ) +
+    theme_bw(base_size = 8, base_family = "Arial") +
+    theme(axis.text = element_text(colour = "black"),
+          axis.line = element_line(size = 0.5),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank())
+}
+
+#' Nice plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels.
+#'
+#' @param data A tibble generated with `all_gene_expr_corr(num_genes = <NUM>, map_ID_2_names = T)`
+#' @param ... Extra parameters passed to `geom_point` 
+#'
+#' @return A ggplot2 plot.
+#' @import ggplot2 
+#' @export
+#'
+#' @examples
+#' #' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                    verbose = F, use = "complete.obs",
+#'                    quality_thrshld = "LOW",
+#'                    num_genes = 10, expr_min_mean_fltr = 10,
+#'                    map_ID_2_names = T, species = "hsapiens") |>
+#'                    plot_best_corr_genes(size = 5, stroke = 0.25)  
+plot_best_corr_genes <- function(data, ...) {
+  
+  required_cols <- c("Correlation", "external_gene_name")    
+  if (!all(required_cols %in% colnames(data) )) {
+    stop("The input data needs the following columns:\n", 
+         paste0(required_cols, collapse = ", "))
+  }
+  
+  
+  left_nudge <- round((min(data$Correlation) - 0) * 0.01, 3)
+  right_nudge <-  round((max(data$Correlation) - 0) * 0.01, 3)
+  
+  ggplot(data) +
+    aes(x = Correlation, y = external_gene_name, fill = Correlation) +
+    geom_segment(aes(x = 0, xend = Correlation, yend = external_gene_name)) +
+    geom_point(shape = 21, ...) +
+    
+    # Positively correlating genes in the plot
+    geom_text(inherit.aes = F, 
+              data = subset(data, Correlation >= 0),
+              aes(label = external_gene_name, x = 0, y = external_gene_name),
+              nudge_x = left_nudge, hjust = 1 ) +
+    # Negatively correlating genes in the plot
+    geom_text(inherit.aes = F, 
+              data = subset(data, Correlation < 0),
+              aes(label = external_gene_name, x = 0, y = external_gene_name),
+              nudge_x = right_nudge, hjust = 0 ) +
+    
+    scale_x_continuous(n.breaks = 10) +
+    scale_fill_gradient2(low = "dodgerblue", mid = "white",
+                         midpoint = 0, high = "firebrick3",
+                         guide = "none") +
+    labs(x = "Correlation" ) +
+    theme_bw(base_size = 8, base_family = "Arial") +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.x = element_text(colour = "black"),
+          axis.line = element_line(size = 0.5),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank() )
+}
