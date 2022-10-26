@@ -30,7 +30,7 @@ For this step to work properly you must make sure that all the required dependen
 install.packages(c('devtools', 'matrixStats', 'BiocManager', 'XICOR', 
                    'ggplot2', 'ggrepel', 'scales', 'patchwork',
                    'MetBrewer', 'ggalluvial', 'ggfittext'
-                   'dplyr', 'tidyr', 'forcats', 'stringr'))
+                   'dplyr', 'tidyr', 'tibble', 'forcats', 'stringr'))
 install.packages('Cairo') 
 # if you get an error installing 'Cairo' you might need to first install the cairographics C library your operating system from https://www.cairographics.org/download/
 ```
@@ -113,6 +113,7 @@ These functions are basically “hacks” that call the system `grep` command, w
 
 ## To do
 
-- [ ] Make vignettes for `biomaRt` functions and vast-tools utility and plotting functions.
+- [ ] Make vignette for `biomaRt` functions 
+- [ ] Make vignette for vast-tools utility and plotting functions, especially correlations. 
 - [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
 - [ ] Add my [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions.
