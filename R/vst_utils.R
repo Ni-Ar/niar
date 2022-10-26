@@ -1,3 +1,252 @@
+#' Grep the PSI values of an as event from a vast-tools output table. 
+#'
+#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event
+#' @param vst_id vast-tools alternative splicing event to grep in the inclusion_tbl
+#' @param tmp_dir path to a temporary location folder
+#' @param clear_tmp Logical, remove the temporary files after the function is done?
+#' @param fast_grep Logical, if TRUE use 'grep -m1' to stop the search after first match found. If FALSE all vst_expression_tbl is read.
+#' @param split_temp Logical, if TRUE first create a temp header file then a temp AS event file and merge them. If FALSE create one temp file with both the header and the AS event PSI and quality scores.
+#'
+#' @return a data.frame
+#' @export
+#'
+#' @examples
+#' #' grep_psi(path_to_vst_tbl, vst_id) |>
+#'     tidy_vst_psi()
+grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE, 
+                     clear_tmp = TRUE, fast_grep = TRUE, split_temp = TRUE) {
+  
+  # 0 -- Check params and set commands
+  if (!file.exists(inclusion_tbl)) { 
+    stop("Can't find an inclusion table at:\n", inclusion_tbl )
+  }
+  
+  if (!dir.exists(tmp_dir)) { 
+    if ( verbose ) { message("No temporary directory found, creating one." ) }
+    dir.create(tmp_dir)
+  }
+  
+  # the -m1 instructs grep to stop reading a file after 1 matching line. 
+  # It is done to speed up the process
+  # The number of searches is calibrated to the num of events to grep
+  num_events <- length(vst_id)
+  if (verbose) { message("Looking for ", num_events, " events to grep") }
+  
+  if ( fast_grep ) {
+    grep_command <- paste0("grep -m", num_events, " ")
+  } else if ( fast_grep == FALSE ){
+    grep_command <- "grep "
+  } else {
+    stop("fast_grep must be logical, either TRUE or FALSE")
+  }
+  
+  # Check vst_id 
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
+  
+  # If there's more than one vst_id in the query
+  if ( length(vst_id) >= 2 ) {
+    
+    # Turn the vst_id into a "greppable" multiple vst_id
+    vst_id <- paste(vst_id, collapse = "|")
+    
+    # grep searches an extended regular expression
+    grep_command <- paste0(grep_command, "-E ")
+  }
+  
+  # Either first get the file header and then the AS event line. split_temp TRUE
+  # or get header and AS line with one command only with process substitution < ( ). split_temp FALSE.
+  if ( split_temp == TRUE ) {
+    
+    # 1 -- Get table header
+    get_header_line = paste0("head -n1 ", inclusion_tbl, " > ", 
+                             tmp_dir, "/tmp_inclusion_tbl_hearder.tab")
+    
+    system(command = get_header_line)
+    
+    
+    # 2 -- Get AS event PSI
+    get_exon_line <- paste0(grep_command, "'", vst_id, "' ", 
+                            inclusion_tbl, " > ",
+                            tmp_dir, "/tmp_vst_id_PSI.tab")
+    system(command = get_exon_line)
+    
+    
+  } else if ( split_temp == FALSE ) {
+    # 1, 2 -- Get table header and AS event PSI
+    get_header_n_exon_line <- paste0( "cat <(head -n1 ", inclusion_tbl,
+                                      ") <(", grep_command, "'", vst_id, "' ", 
+                                      inclusion_tbl, ") > ", tmp_dir,
+                                      "/tmp_vst_id_PSI.tab")
+    
+    # the R system() command calls the bourne shell (sh) instead of the bourne again shell (bash)
+    # to overcome this print the command in the bourne shell and pipe the output into bash
+    bash_header_AS_line <- paste('echo "', get_header_n_exon_line, '" | bash')
+    
+    system( command = bash_header_AS_line )
+    
+  } else {
+    stop("split_tmp must be logical, either TRUE or FALSE")
+  }
+  
+  # 3 -- Check that temp file is not empty
+  exon_PSI_tmp_info <- file.info(file.path(tmp_dir, "tmp_vst_id_PSI.tab"))
+  
+  if ( exon_PSI_tmp_info$size == 0) {
+    stop("Couldn't find event ", vst_id, " in table ",
+         inclusion_tbl, " with the command: ", grep_command)
+  }
+  
+  if ( split_temp == TRUE ) {
+    # 4 -- Read in table header
+    tmp_header <- read.delim(file = file.path(tmp_dir,
+                                              "tmp_inclusion_tbl_hearder.tab"),
+                             header = T, check.names = F, stringsAsFactors = F)
+    
+    # 5 -- Read in AS event vast table 
+    tmp_exon <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
+                           header = F, check.names = F, stringsAsFactors = F)
+    
+    # 6 -- Merge header and exon processed vast table
+    colnames(tmp_exon) <- colnames(tmp_header)
+    vst_psi_tbl <- rbind(tmp_header, tmp_exon)
+    
+  } else if ( split_temp == FALSE ) {
+    # 4, 5, 6 -- Read in AS event vast table 
+    vst_psi_tbl <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
+                              header = T, check.names = F, stringsAsFactors = F)
+    
+  } else {
+    stop("Something went wrong when reading tmp_vst_id_PSI.tab in\n", tmp_dir)
+  }
+  
+  # 7 -- Info on what was found
+  if ( verbose ) {
+    
+    if ( num_events == 1) {
+      message("Found ", vst_id ) 
+    }
+    
+    if ( num_events >= 2 ) {
+      # Inform only on events that were found
+      message("Found ", paste(vst_psi_tbl$EVENT, collapse = ", ") ) 
+      vst_id <- unlist(strsplit(x = vst_id, split = "|", fixed = T) )
+      missing_ids <- vst_id[ which( !vst_id %in% vst_psi_tbl$EVENT ) ]
+      
+      if ( identical(missing_ids, character(0) ) ) { 
+        message("Found all queried events!")
+      } else {
+        warning("Missing event(s) not foud: ", paste(missing_ids, " ") )
+      }
+    }
+  }
+  
+  # 8 -- Clean up
+  if ( clear_tmp ) {
+    
+    if ( split_temp == TRUE ) {
+      file.remove( file.path(tmp_dir, "tmp_inclusion_tbl_hearder.tab") )
+    }
+    
+    file.remove( file.path(tmp_dir, "tmp_vst_id_PSI.tab") )
+    if ( verbose ) { message("Temporary files have been removed.") } 
+  }
+  # 9 -- Return a tbl
+  return(vst_psi_tbl)
+}
+
+#' Grep the expression values of a gene from a vast-tools output table. 
+#'
+#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM)
+#' @param ensembl_gene_id an ensembl gene id that is used to grep a line
+#' @param tmp_dir a temporary directory where to same the intermediate files
+#' @param verbose Logical, print some info?
+#' @param clear_tmp Logical, remove the temporary files after the function is done?
+#' @param fast_grep Logical, if TRUE use 'grep -m1' to stop the search after first match found. If FALSE all vst_expression_tbl is read.
+#'
+#' @return a data.frame
+#' @export
+#'
+#' @examples
+#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
+#'     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
+grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id, 
+                                  tmp_dir = tempdir(), verbose = FALSE, 
+                                  clear_tmp = TRUE, fast_grep = TRUE ) {
+  
+  if ( verbose ) { message("Looking for the expression levels of: ", 
+                           ensembl_gene_id)
+  }
+  
+  # 1 -- Get gene expression table header
+  get_header_line <- paste0("head -n1 ", vst_expression_tbl, " > ", 
+                            tmp_dir, "/tmp_expression_tbl_hearder.tab")
+  
+  system(command = get_header_line)
+  
+  # 2 -- Read in table header
+  tmp_header <- read.delim(file = file.path(tmp_dir,
+                                            "tmp_expression_tbl_hearder.tab"),
+                           header = T, check.names = T, stringsAsFactors = F)
+  
+  # 3 -- Get gene EXPRESSION values for the gene
+  # grep is always done using the ensembl gene id
+  # the -m1 instructs grep to stop reading a file after 1 matching line. 
+  if (fast_grep == TRUE) {
+    grep_command <- "grep -m1 "
+  } else if( fast_grep == FALSE ){
+    grep_command <- "grep "
+  } else {
+    stop("fast_grep must be logical, either TRUE or FALSE")
+  }
+  
+  get_expression_line <- paste0(grep_command, "'", ensembl_gene_id, "' ",
+                                vst_expression_tbl, " > ",
+                                tmp_dir, "/tmp_gene_expression.tab")
+  system(command = get_expression_line)
+  
+  # 4 -- Read in GENE expression line
+  gene_expr_tmp_info <- file.info(file.path(tmp_dir, "tmp_gene_expression.tab"))
+  
+  if ( gene_expr_tmp_info$size == 0 ) {
+    stop("Couldn't find gene ", ensembl_gene_id, " in table ",
+         vst_expression_tbl)
+  } else { if ( verbose ) { message("Found ", ensembl_gene_id ) } }
+  
+  tmp_expression <- read.delim(file = file.path(tmp_dir, "tmp_gene_expression.tab"),
+                               header = F, check.names = F,
+                               stringsAsFactors = F)
+  
+  # If file has more than one row, take just the last one.
+  # This is necessary in case the ensembl_gene_id provided is in one of the headers
+  # but with the fast_grep = TRUE parameter this would probably not work.
+  if ( nrow( tmp_expression ) > 1 ) {
+    warning("When grep gene expression values more than one line was found!\n",
+            "Returning only the last line, which is probably the what you want?")
+    tmp_expression <- tail(tmp_expression, 1)
+  }
+  
+  # 5 -- Merge header and exon processed vast table
+  colnames(tmp_expression) <- colnames(tmp_header)
+  vst_expression_tbl <- rbind(tmp_header, tmp_expression)
+  
+  # 6 -- Clean up
+  if ( clear_tmp ) {
+    file.remove( file.path(tmp_dir, "tmp_expression_tbl_hearder.tab") )
+    file.remove( file.path(tmp_dir, "tmp_gene_expression.tab") )
+    if ( verbose ) { message("Temporary files have been removed.") } 
+  }
+  
+  # 7 -- Fix first column name 
+  # If the value in the first column start as an ensembl gene id
+  if ( grepl(pattern = "^ENS", x = as.character(vst_expression_tbl[, 1])) ) {
+    if ( verbose ) { message("First column is an ENSEMBL gene id") }
+    colnames(vst_expression_tbl)[1] <- "ensembl_gene_id"
+  }
+  
+  # 7 -- Return a tbl
+  return( vst_expression_tbl )
+}
+
 #' Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
 #'
 #' @param vst_psi_tbl A dataframe generated with `grep_psi()` from a vast-tools inclusion table.
@@ -281,7 +530,6 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
   return(lng_vst_expr_tbl)
 }
 
-
 #' Given a vast-tools AS event ID, return the species name.
 #'
 #' @param vst_id An alternative splicing event name from vast-tools.
@@ -297,9 +545,7 @@ tidy_vst_expr <- function(data, expression_unit = c("TPM", "cRPKM"),
 #' # Human
 guess_species <- function(vst_id, latin_name = F) {
   
-  # suppressMessages( require('stringr') )
-  guessed_species <- stringr::str_extract(string = vst_id, 
-                                          pattern = "^[A-Z][a-z][a-z]")
+  guessed_species <- str_extract(string = vst_id, pattern = "^[A-Z][a-z][a-z]")
   
   if ( latin_name == FALSE) {
     if (guessed_species == "Hsa") { guessed_species <- "Human" } 
@@ -324,260 +570,14 @@ guess_species <- function(vst_id, latin_name = F) {
     stop("latin_name must be a logical, either TRUE or FALSE!\n")
   }
   
+  if (nchar(guessed_species) == 0) { 
+    stop("Couldn't guess the species for the vastID: ", vst_id)
+  }
+  
   return(guessed_species)
 }
 
-#' Function to grep the PSI values of an as event from a vast-tools output table. 
-#'
-#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event
-#' @param vst_id vast-tools alternative splicing event to grep in the inclusion_tbl
-#' @param tmp_dir path to a temporary location folder
-#' @param clear_tmp Logical, remove the temporary files after the function is done?
-#' @param fast_grep Logical, if TRUE use 'grep -m1' to stop the search after first match found. If FALSE all vst_expression_tbl is read.
-#' @param split_temp Logical, if TRUE first create a temp header file then a temp AS event file and merge them. If FALSE create one temp file with both the header and the AS event PSI and quality scores.
-#'
-#' @return a data.frame
-#' @export
-#'
-#' @examples
-#' #' grep_psi(path_to_vst_tbl, vst_id) |>
-#'     tidy_vst_psi()
-grep_psi <- function(inclusion_tbl, vst_id, tmp_dir = tempdir(), verbose = FALSE, 
-                     clear_tmp = TRUE, fast_grep = TRUE, split_temp = TRUE) {
-  
-  # 0 -- Check params and set commands
-  if (!file.exists(inclusion_tbl)) { 
-    stop("Can't find an inclusion table at:\n", inclusion_tbl )
-  }
-  
-  if (!dir.exists(tmp_dir)) { 
-    if ( verbose ) { message("No temporary directory found, creating one." ) }
-    dir.create(tmp_dir)
-  }
-  
-  # the -m1 instructs grep to stop reading a file after 1 matching line. 
-  # It is done to speed up the process
-  # The number of searches is calibrated to the num of events to grep
-  num_events <- length(vst_id)
-  if (verbose) { message("Looking for ", num_events, " events to grep") }
-  
-  if ( fast_grep ) {
-    grep_command <- paste0("grep -m", num_events, " ")
-  } else if ( fast_grep == FALSE ){
-    grep_command <- "grep "
-  } else {
-    stop("fast_grep must be logical, either TRUE or FALSE")
-  }
-  
-  # Check vst_id 
-  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
-  
-  # If there's more than one vst_id in the query
-  if ( length(vst_id) >= 2 ) {
-    
-    # Turn the vst_id into a "greppable" multiple vst_id
-    vst_id <- paste(vst_id, collapse = "|")
-    
-    # grep searches an extended regular expression
-    grep_command <- paste0(grep_command, "-E ")
-  }
-  
-  # Either first get the file header and then the AS event line. split_temp TRUE
-  # or get header and AS line with one command only with process substitution < ( ). split_temp FALSE.
-  if ( split_temp == TRUE ) {
-    
-    # 1 -- Get table header
-    get_header_line = paste0("head -n1 ", inclusion_tbl, " > ", 
-                             tmp_dir, "/tmp_inclusion_tbl_hearder.tab")
-    
-    system(command = get_header_line)
-    
-    
-    # 2 -- Get AS event PSI
-    get_exon_line <- paste0(grep_command, "'", vst_id, "' ", 
-                            inclusion_tbl, " > ",
-                            tmp_dir, "/tmp_vst_id_PSI.tab")
-    system(command = get_exon_line)
-    
-    
-  } else if ( split_temp == FALSE ) {
-    # 1, 2 -- Get table header and AS event PSI
-    get_header_n_exon_line <- paste0( "cat <(head -n1 ", inclusion_tbl,
-                                      ") <(", grep_command, "'", vst_id, "' ", 
-                                      inclusion_tbl, ") > ", tmp_dir,
-                                      "/tmp_vst_id_PSI.tab")
-    
-    # the R system() command calls the bourne shell (sh) instead of the bourne again shell (bash)
-    # to overcome this print the command in the bourne shell and pipe the output into bash
-    bash_header_AS_line <- paste('echo "', get_header_n_exon_line, '" | bash')
-    
-    system( command = bash_header_AS_line )
-    
-  } else {
-    stop("split_tmp must be logical, either TRUE or FALSE")
-  }
-  
-  # 3 -- Check that temp file is not empty
-  exon_PSI_tmp_info <- file.info(file.path(tmp_dir, "tmp_vst_id_PSI.tab"))
-  
-  if ( exon_PSI_tmp_info$size == 0) {
-    stop("Couldn't find event ", vst_id, " in table ",
-         inclusion_tbl, " with the command: ", grep_command)
-  }
-  
-  if ( split_temp == TRUE ) {
-    # 4 -- Read in table header
-    tmp_header <- read.delim(file = file.path(tmp_dir,
-                                              "tmp_inclusion_tbl_hearder.tab"),
-                             header = T, check.names = F, stringsAsFactors = F)
-    
-    # 5 -- Read in AS event vast table 
-    tmp_exon <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
-                           header = F, check.names = F, stringsAsFactors = F)
-    
-    # 6 -- Merge header and exon processed vast table
-    colnames(tmp_exon) <- colnames(tmp_header)
-    vst_psi_tbl <- rbind(tmp_header, tmp_exon)
-    
-  } else if ( split_temp == FALSE ) {
-    # 4, 5, 6 -- Read in AS event vast table 
-    vst_psi_tbl <- read.delim(file = file.path(tmp_dir, "tmp_vst_id_PSI.tab"),
-                              header = T, check.names = F, stringsAsFactors = F)
-    
-  } else {
-    stop("Something went wrong when reading tmp_vst_id_PSI.tab in\n", tmp_dir)
-  }
-  
-  # 7 -- Info on what was found
-  if ( verbose ) {
-    
-    if ( num_events == 1) {
-      message("Found ", vst_id ) 
-    }
-    
-    if ( num_events >= 2 ) {
-      # Inform only on events that were found
-      message("Found ", paste(vst_psi_tbl$EVENT, collapse = ", ") ) 
-      vst_id <- unlist(strsplit(x = vst_id, split = "|", fixed = T) )
-      missing_ids <- vst_id[ which( !vst_id %in% vst_psi_tbl$EVENT ) ]
-      
-      if ( identical(missing_ids, character(0) ) ) { 
-        message("Found all queried events!")
-      } else {
-        warning("Missing event(s) not foud: ", paste(missing_ids, " ") )
-      }
-    }
-  }
-  
-  # 8 -- Clean up
-  if ( clear_tmp ) {
-    
-    if ( split_temp == TRUE ) {
-      file.remove( file.path(tmp_dir, "tmp_inclusion_tbl_hearder.tab") )
-    }
-    
-    file.remove( file.path(tmp_dir, "tmp_vst_id_PSI.tab") )
-    if ( verbose ) { message("Temporary files have been removed.") } 
-  }
-  # 9 -- Return a tbl
-  return(vst_psi_tbl)
-}
-
-#' Function to grep the expression values of a gene from a vast-tools output table. 
-#'
-#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM)
-#' @param ensembl_gene_id an ensembl gene id that is used to grep a line
-#' @param tmp_dir a temporary directory where to same the intermediate files
-#' @param verbose Logical, print some info?
-#' @param clear_tmp Logical, remove the temporary files after the function is done?
-#' @param fast_grep Logical, if TRUE use 'grep -m1' to stop the search after first match found. If FALSE all vst_expression_tbl is read.
-#'
-#' @return a data.frame
-#' @export
-#'
-#' @examples
-#' grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
-#'     tidy_vst_expr(ID_cols = "ensembl_geneid", expression_unit = "TMP")
-grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id, 
-                                  tmp_dir = tempdir(), verbose = FALSE, 
-                                  clear_tmp = TRUE, fast_grep = TRUE ) {
-  
-  if ( verbose ) { message("Looking for the expression levels of: ", 
-                           ensembl_gene_id)
-  }
-  
-  # 1 -- Get gene expression table header
-  get_header_line <- paste0("head -n1 ", vst_expression_tbl, " > ", 
-                            tmp_dir, "/tmp_expression_tbl_hearder.tab")
-  
-  system(command = get_header_line)
-  
-  # 2 -- Read in table header
-  tmp_header <- read.delim(file = file.path(tmp_dir,
-                                            "tmp_expression_tbl_hearder.tab"),
-                           header = T, check.names = T, stringsAsFactors = F)
-  
-  # 3 -- Get gene EXPRESSION values for the gene
-  # grep is always done using the ensembl gene id
-  # the -m1 instructs grep to stop reading a file after 1 matching line. 
-  if (fast_grep == TRUE) {
-    grep_command <- "grep -m1 "
-  } else if( fast_grep == FALSE ){
-    grep_command <- "grep "
-  } else {
-    stop("fast_grep must be logical, either TRUE or FALSE")
-  }
-  
-  get_expression_line <- paste0(grep_command, "'", ensembl_gene_id, "' ",
-                                vst_expression_tbl, " > ",
-                                tmp_dir, "/tmp_gene_expression.tab")
-  system(command = get_expression_line)
-  
-  # 4 -- Read in GENE expression line
-  gene_expr_tmp_info <- file.info(file.path(tmp_dir, "tmp_gene_expression.tab"))
-  
-  if ( gene_expr_tmp_info$size == 0 ) {
-    stop("Couldn't find gene ", ensembl_gene_id, " in table ",
-         vst_expression_tbl)
-  } else { if ( verbose ) { message("Found ", ensembl_gene_id ) } }
-  
-  tmp_expression <- read.delim(file = file.path(tmp_dir, "tmp_gene_expression.tab"),
-                               header = F, check.names = F,
-                               stringsAsFactors = F)
-  
-  # If file has more than one row, take just the last one.
-  # This is necessary in case the ensembl_gene_id provided is in one of the headers
-  # but with the fast_grep = TRUE parameter this would probably not work.
-  if ( nrow( tmp_expression ) > 1 ) {
-    warning("When grep gene expression values more than one line was found!\n",
-            "Returning only the last line, which is probably the what you want?")
-    tmp_expression <- tail(tmp_expression, 1)
-  }
-  
-  # 5 -- Merge header and exon processed vast table
-  colnames(tmp_expression) <- colnames(tmp_header)
-  vst_expression_tbl <- rbind(tmp_header, tmp_expression)
-  
-  # 6 -- Clean up
-  if ( clear_tmp ) {
-    file.remove( file.path(tmp_dir, "tmp_expression_tbl_hearder.tab") )
-    file.remove( file.path(tmp_dir, "tmp_gene_expression.tab") )
-    if ( verbose ) { message("Temporary files have been removed.") } 
-  }
-  
-  # 7 -- Fix first column name 
-  # If the value in the first column start as an ensembl gene id
-  if ( grepl(pattern = "^ENS", x = as.character(vst_expression_tbl[, 1])) ) {
-    if ( verbose ) { message("First column is an ENSEMBL gene id") }
-    colnames(vst_expression_tbl)[1] <- "ensembl_gene_id"
-  }
-  
-  # 7 -- Return a tbl
-  return( vst_expression_tbl )
-}
-
-
-#' Wrapper for readr::read_delim for a tab delimited table. Fastest way to read this kind of data into `R`.
+#' Wrapper for `readr::read_delim` for a tab delimited table. Fastest way to read this kind of data into `R`.
 #'
 #' @param path A character vector providing the 'path/to/the/table/to/read'.
 #' @param verbose Logical. Use `TRUE` to know the table file size being read into `R`.
@@ -709,37 +709,152 @@ get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL,
     return(tidy_tbl)
 }
 
-#' Calcualte correlation of one AS event PSI vs many genes expression levels
-#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event
-#' @param vst_id vast-tools alternative splicing event to grep in the inclusion_tbl
-#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM)
-#' @param quality_thrshld 
+#' Extract the PSI from an inclusion table and return it as a matrix
+#'
+#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event.
+#' @param vst_id vast-tools alternative splicing event to grep in the `inclusion_tbl`.
+#' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
+#' @param verbose Print out extra info.
+#' 
+#' @return A matrix
+#' @import dplyr 
+#' @import tibble
+#' @export
+#' @description The matrix contains the samples as row names and the vastID as column name
+#'
+#' @examples
+#' gimme_psi_mat(inclusion_tbl = /path/to/inclusion/table/file.tab,
+#'               vst_id = "HsaEX0000001")
+gimme_psi_mat <- function(inclusion_tbl, vst_id, quality_thrshld = "N", 
+                          verbose = FALSE) {
+  # 1 -- Check input parameters
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
+  if ( !any(quality_thrshld == c("N", "VLOW", "LOW", "OK", "SOK")) ) {
+    stop("Can't understand the filtering option:\t", quality_thrshld,
+         "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
+  }
+  
+  
+  # 2 -- GET AS EVENT PSI AND INFO INTO A TIDY TABLE
+  grep_psi(inclusion_tbl = inclusion_tbl, vst_id = vst_id, verbose = verbose ) |>
+    tidy_vst_psi(verbose = verbose) -> psi_tbl
+  
+  # 3 -- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld 
+  # Set the Score 1 quality values as factors 
+  Quality_Score_Values <- c("N", "VLOW", "LOW", "OK", "SOK")
+  psi_tbl$Quality_Score_Value <- factor(psi_tbl$Quality_Score_Value,
+                                        Quality_Score_Values)
+  
+  num_quality_thrshld <- as.numeric(factor(quality_thrshld, 
+                                           levels = Quality_Score_Values))
+  psi_tbl <- subset(psi_tbl, 
+                    as.numeric(Quality_Score_Value) >= num_quality_thrshld)
+  # 4 -- Turn it into a matrix
+  psi_tbl |>
+    select(Sample, PSI) |>
+    column_to_rownames("Sample") |>
+    setNames(vst_id) |>
+    as.matrix() -> psi_mat
+  
+  return(psi_mat)
+}
+
+#' Extract the gene expression counts from an vast-tools expression table and return them as a matrix
+#'
+#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM).
+#' @param min_mean_count Filter out low expressed genes in the table read from `inclusion_tbl`. Defines the minimum row mean expression value across all samples that a gene must have to be selected. 
+#' @param verbose Print out extra info.
+#'
+#' @return A matrix
+#' @import dplyr 
+#' @import tibble
+#' @export
+#' @description The matrix contains the samples as row names and the gene ID as column name. The gene ID used are the one present in the first column of the table (usually ENSEMBL gene ID).
+#'
+#' @examples
+#' gimme_expr_mat(vst_expression_tbl = /path/to/expr/table/file.tab)
+gimme_expr_mat <- function(vst_expression_tbl, min_mean_count = 5, 
+                           verbose = FALSE) {
+  
+  # 1 -- Check input parameters
+  if ( missing(vst_expression_tbl) ) { 
+    stop("You didn't specified a path to the expression table!") 
+    } 
+  
+  # 2-- DUMP ALL GENE EXPRESSIONS IN A TABLE
+  dump <- read_vst_tbl(path = vst_expression_tbl, show_col_types = FALSE)
+  
+  # 3 -- CHECK IF FIRST COLUMN IS AN ENSEMBL GENE ID
+  # If the value in the first column and first row start as an ENSEMBL gene ID
+  if ( grepl(pattern = "^ENS", x = as.character(dump[1, 1]) ) ) {
+    if ( verbose ) { message("First column is an ENSEMBL gene ID") }
+    colnames(dump)[1] <- "ensembl_gene_id"
+  }
+  
+  # 4 -- Parse the gene expression table into a matrix
+  ## Fist check that first column names are all unique names.
+  num_rows <- nrow(dump)
+  num_uniq_names <- dump |> pull(var = 1) |> unique() |> length()
+  
+  if (num_rows != num_uniq_names) {
+    stop("The vast-tools gene expression table ", 
+         "(specified with vst_expression_tbl) does NOT have unique ",
+         "gene IDs! There are ", num_rows, " rows in the table, but only ",
+         num_uniq_names, " unique gene name IDs. Do something about!")
+  }
+  # Turn the first column into row names
+  dump <- column_to_rownames(dump, var = colnames(dump)[1])
+  # Keep only columns that are numeric
+  dump <- select(dump, where(is.numeric) )
+  
+  # 5 -- Filter out low expressed genes and transpose
+  gene_expr_mat <- t(dump[which(rowMeans(dump, na.rm = T) >= min_mean_count), ])
+  
+  return(gene_expr_mat)
+}
+
+
+#' Calculate correlation of one AS event PSI vs many genes expression levels (1 vs many).
+#' 
+#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event.
+#' @param vst_id vast-tools alternative splicing event to grep in the `inclusion_tbl`.
+#' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
+#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM).
+#' @param min_mean_count Filter out low expressed genes in the table read from `inclusion_tbl`. Defines the minimum row mean expression value across all samples that a gene must have to be selected. 
 #' @param corr_method Either `spearman`, `pearson`, or `kendall` passed to the function `cor()`. 
-#' @param expr_min_mean_fltr Filter out low expressed genes in the table read from `inclusion_tbl`. Defines the minimum row mean expression value across all samples that a gene must have to be selected. 
 #' @param num_genes Return only the top and bottom number of genes. Integer number greater or equal than 1. Default is `NULL` returning all genes.
 #' @param map_ID_2_names Logical. Whether or not to map the ENSEMBL gene IDs to gene names. Can be used only if `num_genes` is specified and the table contains ENSEMBL gene ID (check automatically).
-#' @param species Species character to use to map the ENSEMBL gene ID. Used by `gimme_mart()` to built a bioMaRt object.
+#' @param species Species character to use to map the ENSEMBL gene ID. Used by `gimme_mart()` to built a bioMaRt object. Default is guessed from `vst_id`.
 #' @param verbose Print out information
 #' @param ... Extra parameters passed to `cor()` like `use = "complete.obs"`.
 #'
-#' @return
-#' A data.frame()
+#' @return A tibble
+#' @import dplyr 
+#' @import tibble
 #' @export
+#' @description This function calculates the correlation between an alternative splicing event Percentage of Sequence Inclusion (PSI) with the expression levels (i.e. counts) of all genes present in the vast-tools expression table, after some basic filtering. The type of correlation can be either Spearman, Pearson, or Kendall. If using this type of correlation extra parameters can be passed to the `cor()` R function used to calculate the correlations. The mapping of ENSEMBL gene IDs to gene names is available only if selecting best correlating genes. This is done in order to avoid to query ENSEMBL bioMart servers with a massive gene list.
+#' 
 #'
 #' @examples
-#' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
-#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
-#'                    verbose = T, use = "complete.obs")
-all_gene_expr_corr <- function(inclusion_tbl, vst_id,
-                               vst_expression_tbl, 
-                               quality_thrshld = "N",
-                               corr_method = c("spearman", "pearson", "kendall"),
-                               expr_min_mean_fltr = 5,
-                               num_genes = NULL,
-                               map_ID_2_names = FALSE,
-                               species,
-                               verbose = T, ...) {
-  # 1 -- Check input parameters
+#' # Return one PSI to all gene correlation
+#' gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                     vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                     use = "complete.obs", verbose = TRUE ) -> corr_df
+#'                     
+#' # Return one PSI to all genes correlation filtered for the top and bottom correlating genes and map the IDs to names.
+#' gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001",
+#'                     quality_thrshld = "VLOW", 
+#'                     vst_expression_tbl = expr_path, min_mean_count = 100,
+#'                     corr_method = "spearman", use = "complete.obs"
+#'                     num_genes = 10, map_ID_2_names = T, species = "hsapiens",
+#'                     verbose = TRUE ) -> best_corr_df                
+gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
+                                vst_expression_tbl, min_mean_count = 5,
+                                corr_method = c("spearman", "pearson", "kendall"),
+                                num_genes = NULL, 
+                                map_ID_2_names = FALSE, species,
+                                verbose = FALSE, ...) {
+  # 1 ---- CHECK INPUT PARAMETERS ----
   if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
   if ( missing(corr_method) ) { 
     stop("You didn't specified an correlation method!",
@@ -750,72 +865,51 @@ all_gene_expr_corr <- function(inclusion_tbl, vst_id,
             "'spearman', 'pearson' or, 'kendall'.",
             "Use '?cor' read more about what method to use.")
   }  
-  if ( !any(quality_thrshld == c("N", "VLOW", "LOW", "OK", "SOK")) ) {
-    stop("Can't understand the filtering option:\t", quality_thrshld,
-         "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
-  }
-  if (! is.numeric(expr_min_mean_fltr) ) { stop("expr_min_mean_fltr must be a number!")}
+  if (! is.numeric(min_mean_count) ) { stop("min_mean_count must be a number!")}
   if (map_ID_2_names == TRUE) {
+    # Guess the species
     if ( missing(species) ) { 
+      species <- guess_species(vst_id = vst_id, latin_name = TRUE)
+    }
+    
+    if ( is.null(species) ) {
       stop("You need to specify the species to use for mapping the ENSEMBL",
            "gene IDs! Use '?gimme_mart()' to check which species are supported")
-      }
+    }
   }
+ 
+  # 2 -- GET AS EVENT PSI AND INFO INTO A MATRIX
+  gimme_psi_mat(inclusion_tbl = inclusion_tbl, vst_id = vst_id, 
+                quality_thrshld = quality_thrshld, verbose = verbose) -> psi_mat
   
-  # 2 -- Grep AS Event into a tidy table
-  grep_psi(inclusion_tbl = inclusion_tbl, vst_id = vst_id, verbose = verbose ) |>
-    tidy_vst_psi(verbose = verbose) -> psi_tbl
+  # 3-- GET GENE EXPRESSION COUNTS INTO A MATRIX
+  gimme_expr_mat(vst_expression_tbl, min_mean_count = min_mean_count, 
+                 verbose = verbose) -> gene_expr_mat
   
-  # 3 -- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld 
-  # Set the Score 1 quality values as factors 
-  Quality_Score_Values <- c("N", "VLOW", "LOW", "OK", "SOK")
-  psi_tbl$Quality_Score_Value <- factor(psi_tbl$Quality_Score_Value,
-                                        Quality_Score_Values)
-  
-  num_quality_thrshld <- as.numeric(factor(quality_thrshld, levels = Quality_Score_Values))
-  psi_tbl <- subset(psi_tbl, as.numeric(Quality_Score_Value) >= num_quality_thrshld)
-  
-  # 3-- Dump all gene expression in a table
-  dump <- read_vst_tbl(path = vst_expression_tbl, show_col_types = FALSE)
-  
-  # 4 -- Fix first column name 
+  # 4 -- CHECK IF COLUMN NAMES OF THE EXPRESSION MATRIX IS AN ENSEMBL GENE ID
   # If the value in the first column and first row start as an ENSEMBL gene ID
-  if ( grepl(pattern = "^ENS", x = as.character(dump[1, 1]) ) ) {
+  if ( grepl(pattern = "^ENS", x = as.character(colnames(gene_expr_mat)[1]) )) {
     if ( verbose ) { message("First column is an ENSEMBL gene ID") }
-    colnames(dump)[1] <- "ensembl_gene_id"
     # Specify that these gene ID are mappale
     mappable <- TRUE
   }
   
-  # 5 -- Turn the first column into row names
-  ## Fist check that they are unique names
-  num_rows <- nrow(dump)
-  num_uniq_names <- dump |> pull(var = 1) |> unique() |> length()
+  # 7 -- FILTER OUT SAMPLES FOR WHICH THE PSI WAS DISCARDED
+  gene_expr_mat <- gene_expr_mat[rownames(gene_expr_mat) %in%  rownames(psi_mat), ]
   
-  if (num_rows != num_uniq_names) {
-    stop("The vast-tools gene expression table does NOT have unique",
-         "gene ID! There are ", num_rows, " rows in the table, but only ",
-         num_uniq_names, " gene name IDs.")
-  }
-  # First col to row name
-  dump <- column_to_rownames(dump, var = colnames(dump)[1])
-  
-  # 6 -- Filter out low expressed genes
-  gene_expr_mat <- t(dump[which(rowMeans(dump, na.rm = T) >= expr_min_mean_fltr), ])
-  
-  # 7 -- Filter out samples with no PSI
-  gene_expr_mat <- gene_expr_mat[rownames(gene_expr_mat) %in%  psi_tbl$Sample, ]
-  
+  # 8 -- PRINT MATRIXES DIMENSIONS
   if (verbose) {
+    message("Splicing inclusion table: ", nrow(psi_mat), " samples x ",
+            ncol(psi_mat), " alternatively spliced event")
     message("Gene expression table: ", nrow(gene_expr_mat), " samples x ",
             ncol(gene_expr_mat), " genes")
   }
   
   # quick check that all samples are there
-  stopifnot(all(psi_tbl$Sample %in% rownames(gene_expr_mat)))
+  stopifnot(all(rownames(psi_mat) %in% rownames(gene_expr_mat)))
   
-  # 8 -- Compute correlation of one AS event PSI vs all genes
-  cor(x = psi_tbl$PSI, y = gene_expr_mat, ..., method = corr_method) |>
+  # 8 -- COMPUTE CORRELATION OF 1 AS EVENT PSI VS ALL GENES
+  cor(x = psi_mat[, 1], y = gene_expr_mat, ..., method = corr_method) |>
     t() |>
     as.data.frame() |>
     setNames("Correlation") |>
@@ -823,17 +917,13 @@ all_gene_expr_corr <- function(inclusion_tbl, vst_id,
     rownames_to_column("gene_name") |>
     as_tibble() -> genes_corr_df
   
-  # 9 -- Return only top or bottom genes ranked by correlation
+  # 9 -- RETURN ONLY TOP AND BOTTOM CORRELATING GENES 
   if ( all(is.numeric(num_genes), num_genes >= 1) ) {
     genes_corr_df |> (\(x) {
       rbind( head(x, num_genes), tail(x, num_genes))
     })() -> genes_corr_df
     
-    if (verbose) { 
-      message("Returning only the top and bottom ", num_genes, " genes")
-    }
-    
-    # 10 -- Try to map the ENSEMBL gene IDs
+    # 10 -- TRY TO MAP ENSEMBL GENE IDs TO GENE NAMES
     if ( map_ID_2_names ) {
       if (mappable == TRUE) {
         
@@ -858,7 +948,8 @@ all_gene_expr_corr <- function(inclusion_tbl, vst_id,
           # Order external gene name as factors. Useful for plotting
           mutate(external_gene_name = fct_reorder(.f = external_gene_name, 
                                                   .x = rev(Correlation))
-                 ) -> genes_corr_df
+                 ) |>
+          relocate(external_gene_name, .before = Correlation)-> genes_corr_df
 
       } else if ( mappable == FALSE){
         warning("These genes ID do not seem to be ENSEMBL gene IDs",
