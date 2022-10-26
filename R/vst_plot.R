@@ -97,7 +97,7 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
     return(p_PSI)
 }
 
-#' Plot gene expression vs alternatively spliced event PSI
+#' Plot a gene expression vs an alternatively spliced event PSI ( 1 vs 1)
 #'
 #' @param data A `data.frame` with these column names: "Quality_Score_Value", "Gene_Expr", "PSI", "GENE", and "Sample". Header is case-sensitive.
 #' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
@@ -121,6 +121,13 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #' @import dplyr
 #' @import XICOR
 #' @export
+#' #' @description The plot title reports the correlation values of the:
+#' \itemize{
+#' \item{ Spearman's rho }
+#' \item{ Pearson's r }
+#' \item{ Kendall's tau}
+#' \item{ Chatterjee's xi}
+#' }   
 #'
 #' @examples
 #' # 1. Get PSI values
@@ -228,6 +235,11 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
                        method = "pearson")
   expr_psi_prsn <- round(expr_psi_prsn, 3)
   
+  # Kendall
+  expr_psi_kndl <- cor(data$Gene_Expr, data$PSI, use = "complete.obs",
+                       method = "kendall")
+  expr_psi_kndl <- round(expr_psi_kndl, 3)
+  
   # Chatterjee ( http://arxiv.org/abs/1909.10140 )
   # Remember this is not symmetric 
   expr_psi_chttrj <- calculateXI(xvec = data$Gene_Expr, yvec = data$PSI, 
@@ -238,7 +250,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     message("Expression vs PSI correlations:\n",
             "GENE: ", external_gene_name, "\tID: ", vst_id, "\n",
             "Spearman: ", expr_psi_sprmn, " Pearson: ", expr_psi_prsn,
-            " Chatterjee: ", expr_psi_chttrj)
+            " Kendall: ", expr_psi_kndl, " Chatterjee: ", expr_psi_chttrj)
   }
   
   if ( beautify ) {
@@ -287,9 +299,9 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   AS_EVENT_GENE <- unique(data$GENE)
   
   info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vst_id, " (",
-                     AS_EVENT_GENE, ")", "      ", "Spearman: ", expr_psi_sprmn,
-                     ", Pearson: ", expr_psi_prsn, 
-                     ", Chatterjee: ", expr_psi_chttrj)
+                     AS_EVENT_GENE, ")", "      ", "\u03c1 ", expr_psi_sprmn,
+                     ", r ", expr_psi_prsn, ", \u03c4 ", expr_psi_kndl,
+                     ", \u03be ", expr_psi_chttrj)
   
   ggplot(data) +
     aes(x = Gene_Expr, y = PSI) +
@@ -627,7 +639,7 @@ plot_corr_dist <- function(data, binwidth = 0.05 ){
           plot.background = element_blank())
 }
 
-#' Nice plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels.
+#' Plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels. (1 vs many)
 #'
 #' @param data A tibble generated with `all_gene_expr_corr(num_genes = <NUM>, map_ID_2_names = T)`
 #' @param ... Extra parameters passed to `geom_point` 
@@ -687,4 +699,229 @@ plot_best_corr_genes <- function(data, ...) {
           panel.grid.major.y = element_blank(),
           panel.border = element_blank(),
           plot.background = element_blank() )
+}
+
+#' Plot a heatmap with all correlations (many vs many) between an AS event PSI and a set of genes. 
+#'
+#' @param inclusion_tbl path to vast-tools inclusion table that contains a vst_id event.
+#' @param vst_id vast-tools alternative splicing event to grep in the `inclusion_tbl`.
+#' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
+#' @param vst_expression_tbl Path to a vast-tools expression table (either cRPKM or TPM).
+#' @param min_mean_count Filter out low expressed genes in the table read from `inclusion_tbl`. Defines the minimum row mean expression value across all samples that a gene must have to be selected. 
+#' @param gene_ids Character vector containing valid ENSEMBL gene IDs to be used for calculating the correlations.
+#' @param map_ID_2_names Logical. Whether or not to map the ENSEMBL gene IDs to gene names. Can be used only if `num_genes` is specified and the table contains ENSEMBL gene ID (check automatically). Default `TRUE`.
+#' @param species Species character to use to map the ENSEMBL gene ID. Used by `gimme_mart()` to built a bioMaRt object. Default is guessed from `vst_id`.
+#' @param event_position Where the place the `vst_id` in the heatmap. Either `first` for placing it as a first plotted element, or `middle` to plot it in the middle.
+#' @param corr_method Either `spearman`, `pearson`, or `kendall` passed to the function `cor()`. 
+#' @param return_data Logical. Return the heatmap or the dataframe. Default is `FALSE` returning the heatmap.
+#' @param verbose 
+#' @param ... 
+#'
+#' @return A ggplot2 plot or a tibble.
+#' @import tibble
+#' @import dplyr
+#' @importFrom  forcats fct_inorder
+#' @import ggplot2
+#' @export
+#' @description The order of the genes in the lower triangle heatmap are defined as the input order of `gene_ids`.
+#'
+#' @examples]
+#' #' # Create a gene ID mapping object.
+#' ensembl <- gimme_mart()
+#' 
+#' # Map SRSF1-12 gene names to ENSEMBL GENE IDs.
+#' SRSF_IDs <- gene_name_2_ensembl_id(gene_name = paste0("SRSF", 1:12))
+#' 
+#' # Plot the correlations between all SRSFs genes expressions and one AS event
+#' plot_corr_heatmap(inclusion_tbl = psi_path, vst_id = "HsaEX0000001",
+#'                   quality_thrshld = "VLOW",
+#'                   vst_expression_tbl = expr_path,
+#'                   corr_method = "spearman", use = "complete.obs",
+#'                   gene_ids = SRSF_IDs, verbose = F,
+#'                   event_position = "middle")
+plot_corr_heatmap <- function(inclusion_tbl, vst_id, quality_thrshld,
+                              vst_expression_tbl, min_mean_count = 1,
+                              gene_ids, 
+                              map_ID_2_names = TRUE, species,
+                              event_position = "first",
+                              corr_method = c("spearman", "pearson", "kendall"),
+                              return_data = FALSE,
+                              verbose, ...
+) {
+  # 1 ---- Check input parameters ----
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
+  if ( missing(gene_ids) ) { stop("You didn't specified a vector of ENSEMBL gene IDs!") } 
+  if( length(gene_ids) < 3 ) { stop("Please provide at least 3 ENSEMBL gene IDs") }
+  
+  if ( ! grepl(pattern = "^ENS", x = gene_ids[1] ) ) {
+    stop("Are you sure that the first element of 'gene_ids' is a valid ENSEMBL",
+         "gene ID?")
+  }
+  
+  if ( missing(corr_method) ) { 
+    stop("You didn't specified an correlation method!",
+         "Use '?cor' read more about what method to use.") 
+  } 
+  if ( ! any( corr_method %in%  c("spearman", "pearson", "kendall") ) ) {
+    message("corr_method must be either:",
+            "'spearman', 'pearson' or, 'kendall'.",
+            "Use '?cor' read more about what method to use.")
+  }
+  
+  if ( ! any( event_position %in%  c("first", "middle") ) ) {
+    message("event_position must be either: 'first' or 'middle'")
+  }
+  
+  if ( map_ID_2_names == TRUE) {
+    # Guess the species
+    if ( missing(species) ) { 
+      species <- guess_species(vst_id = vst_id, latin_name = TRUE)
+      if (verbose) { message("I believe ", vst_id, " is a ", species, " ID.") }
+    }
+    
+    if ( is.null(species) ) {
+      stop("You need to specify the species to use for mapping the ENSEMBL",
+           "gene IDs! Use '?gimme_mart()' to check which species are supported")
+    }
+  }
+  
+  # 2 ---- GET PSI MATRIX ----
+  gimme_psi_mat(inclusion_tbl = psi_path, vst_id = vst_id,
+                quality_thrshld = quality_thrshld, 
+                verbose = verbose ) -> psi_mat
+  
+  # 3 ---- GET EXPRESSION MATRIX  ----
+  gimme_expr_mat(vst_expression_tbl = vst_expression_tbl, 
+                 min_mean_count = min_mean_count, 
+                 verbose = verbose) -> gene_expr_mat
+  
+  # 4 ---- FILTER OUT GENES THAT ARE NOT REQUIRED ---- 
+  gene_expr_mat <- gene_expr_mat[, colnames(gene_expr_mat) %in% gene_ids]
+  
+  # 5 ---- FILTER OUT SAMPLES FOR WHICH THE PSI WAS DISCARDED ----
+  gene_expr_mat <- gene_expr_mat[rownames(gene_expr_mat) %in%  rownames(psi_mat), ]
+  
+  # 6 ---- COMBINE THE 2 MATRIXES ----
+  p_e_mat <- cbind(psi_mat, gene_expr_mat)
+  
+  # 7 ---- CALCULATE FULL CORRELATION MATRIX ----
+  M <- cor(x = p_e_mat, method = corr_method, ...)
+  # TO DO: check that the matrix is numeric and not empty
+  
+  # 8 ---- MAP ENSEMBL GENE IDs TO GENE NAMES ----
+  if ( map_ID_2_names == TRUE ) {
+    # Create an ENSEMBL's BioMaRt ojbect to map ensembl gene IDs to gene names
+    ensembl <- gimme_mart(species = species)
+    gene_colnames <- colnames(M)[-1]  
+    ensembl_id_2_gene_name(ensembl_gene_id = gene_colnames,
+                           only_gene_name = F,
+                           mRt_objct = ensembl) -> map_df
+    external_gene_names <- map_df$external_gene_name
+    
+    # Test if external gene names are unique
+    if( length(unique(external_gene_names)) != length(external_gene_names) ) {
+      warning("It could be that the mapped gene names from the ENSEMBL IDs",
+              " are not unique, and some are duplicated. This is likely going ",
+              " to give you an error at some point.")
+    }
+    
+    # Assign mapped gene names to the matrix
+    colnames(M)[-1] <- external_gene_names
+    rownames(M)[-1] <- external_gene_names
+    
+    # Set order as genes appear in the input parameter "gene_ids"
+    map_df |> 
+      mutate(ensembl_gene_id = factor(ensembl_gene_id, levels = gene_ids)) |>
+      arrange(ensembl_gene_id) |>
+      mutate(external_gene_name = fct_inorder(external_gene_name) ) |>
+      as_tibble() -> map_df_fct
+    
+    genes_order <- as.character(map_df_fct$external_gene_name)
+    
+  } else if (map_ID_2_names == FALSE ){
+    genes_order <- gene_ids
+  } else { 
+    stop("Are you sure map_ID_2_names is a logical?")
+  }
+  
+  # ---- DEFINE GENE ORDER WITH AS EVENT FIRST OR IN THE MIDDLE ----
+  if ( event_position == "first" ) {
+    elements_order <- c(colnames(M)[1], genes_order)
+  } else if ( event_position == "middle" ) {
+    mid_point <- round(length(genes_order) / 2, 0)
+    elements_order <- c(
+      # first part OF GENES
+      genes_order[1:mid_point],
+      # AS event
+      colnames(M)[1], 
+      # second part
+      genes_order[seq(from = mid_point+1, to = mid_point*2, by = 1)]
+    ) 
+  } else {
+    stop("event_position must be either 'first' or 'middle', not: ", 
+         event_position, "!")
+  }
+  
+  # ---- TURN CORRELATION MATRIX TO A DATAFRAME KEEPING ONLY THE LOWER TRIANGLE ----
+  as.data.frame(M) |>
+    rownames_to_column("FROM") |>
+    as_tibble() |>
+    pivot_longer(cols = !starts_with("FROM"), names_to = "TO",
+                 values_to = "Correlation") |>
+    subset(!is.na(Correlation)) |>
+    mutate(FROM = factor(FROM, levels = elements_order ) ) |>
+    mutate(TO = factor(TO, levels = rev(elements_order) ) ) |>
+    arrange(FROM, desc(TO)) |> 
+    # FROM and TO are sorted in opposite direction as their levels are reversed
+    # Filter all the rows below or equal to when TO is equal to FROM.
+    filter(row_number() <= which(TO == FROM)) -> df
+  # ---- PLOT LOWER TRIANGLE CORRELATION HEATMAP WITH GGPLOT2 ----   
+  if ( return_data == TRUE ) {
+    return(df)
+  } else if ( return_data == FALSE ) {
+    
+    right_nudge <- length(unique(df$FROM)) * 0.042
+    
+    ggplot(df, aes(y = FROM, x = TO, fill = Correlation)) +
+      geom_tile() +
+      geom_text(data = subset(df, FROM == TO),
+                aes(label = FROM), hjust = 0,
+                nudge_x = right_nudge, size = 3, check_overlap = T, 
+                family = "Arial")  +
+      scale_fill_gradient2(low = "dodgerblue", mid = "white", 
+                           midpoint = 0, high = "firebrick4", 
+                           n.breaks = 10, limits = c(-1, 1)) +
+      guides(fill = guide_colourbar(title = paste0(corr_method, "\ncorrelation"), 
+                                    barheight = unit(5, "cm"), 
+                                    barwidth = unit(2.5, "mm"),
+                                    title.vjust = 0.85 )) +
+      coord_fixed(clip = 'off', ratio = 1) +
+      theme_classic(base_size = 8, base_family = "Arial") +
+      theme(axis.text.x = element_text(hjust = 1, angle = 45, 
+                                       margin = margin(r = -1), 
+                                       colour = "black"),
+            axis.text.y = element_text(hjust = 1, margin = margin(r = -1), 
+                                       colour = "black"),
+            axis.title = element_blank(), 
+            axis.line = element_blank(),
+            axis.ticks = element_blank(),
+            legend.position = c(0.9, 0.75),
+            legend.text = element_text(family = "Arial"),
+            legend.title = element_text(family = "Arial", hjust = 0),
+            legend.margin = margin(t = 2, b = 0, unit = "mm"),
+            legend.background = element_blank(),
+            plot.caption = element_blank(),
+            panel.background = element_blank(),
+            plot.background = element_blank(),
+            plot.margin = margin(l = -2, r =  -2, unit = "cm"),
+      ) -> p_corr_heatmap
+    
+    return(p_corr_heatmap)
+    
+  } else {
+    warning("The parameter return_data must be a logical, either TRUE or ",
+            "FALSE, not: ", return_data, ". I'm returnig just the data ",
+            "as it is not clear what you want!")
+    return(df)
+  }
 }
