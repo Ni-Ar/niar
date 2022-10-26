@@ -2,7 +2,7 @@
 % Please edit documentation in R/vst_plot.R
 \name{plot_corr_gene_expr_psi}
 \alias{plot_corr_gene_expr_psi}
-\title{Plot gene expression vs alternatively spliced event PSI}
+\title{Plot a gene expression vs an alternatively spliced event PSI ( 1 vs 1)}
 \usage{
 plot_corr_gene_expr_psi(
   data,
@@ -54,7 +54,13 @@ plot_corr_gene_expr_psi(
 A ggplot2 plot or a \code{data.frame}.
 }
 \description{
-Plot gene expression vs alternatively spliced event PSI
+The plot title reports the correlation values of the:
+\itemize{
+\item{ Spearman's rho }
+\item{ Pearson's r }
+\item{ Kendall's tau}
+\item{ Chatterjee's xi}
+}
 }
 \examples{
 # 1. Get PSI values

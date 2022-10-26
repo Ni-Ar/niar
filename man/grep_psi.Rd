@@ -2,7 +2,7 @@
 % Please edit documentation in R/vst_utils.R
 \name{grep_psi}
 \alias{grep_psi}
-\title{Function to grep the PSI values of an as event from a vast-tools output table.}
+\title{Grep the PSI values of an as event from a vast-tools output table.}
 \usage{
 grep_psi(
   inclusion_tbl,
@@ -31,7 +31,7 @@ grep_psi(
 a data.frame
 }
 \description{
-Function to grep the PSI values of an as event from a vast-tools output table.
+Grep the PSI values of an as event from a vast-tools output table.
 }
 \examples{
 #' grep_psi(path_to_vst_tbl, vst_id) |>

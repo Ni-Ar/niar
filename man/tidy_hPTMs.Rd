@@ -4,10 +4,14 @@
 \alias{tidy_hPTMs}
 \title{Parse the information about histone PTMs from an EpiProfile output import}
 \usage{
-tidy_hPTMs(data)
+tidy_hPTMs(data, split_double_PTMs = FALSE, max_nchar_PTM = 20)
 }
 \arguments{
 \item{data}{A tibble imported with \code{read_EpiProfile_histone_ratio()}.}
+
+\item{split_double_PTMs}{Logical. Split the modification on peptides with 2 lysine co-occurring PTMs in \code{Sub_PTM1} and \code{Sub_PTM2} new columns.}
+
+\item{max_nchar_PTM}{Integer. Longest character length of the modification text in column \code{PTM}.}
 }
 \value{
 A tidy tibble

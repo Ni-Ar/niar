@@ -2,7 +2,7 @@
 % Please edit documentation in R/vst_utils.R
 \name{read_vst_tbl}
 \alias{read_vst_tbl}
-\title{Wrapper for readr::read_delim for a tab delimited table. Fastest way to read this kind of data into \code{R}.}
+\title{Wrapper for \code{readr::read_delim} for a tab delimited table. Fastest way to read this kind of data into \code{R}.}
 \usage{
 read_vst_tbl(path, verbose = FALSE, ...)
 }
@@ -17,10 +17,10 @@ read_vst_tbl(path, verbose = FALSE, ...)
 A tibble
 }
 \description{
-Wrapper for readr::read_delim for a tab delimited table. Fastest way to read this kind of data into \code{R}.
+Wrapper for \code{readr::read_delim} for a tab delimited table. Fastest way to read this kind of data into \code{R}.
 }
 \examples{
-read_vst_tbl(path = "location/of/tab/delimited/file/inclusion/table.tab") |>
+read_vst_tbl(path = "location/to/tab/delimited/inclusion/table/file.tab") |>
    tidy_vst_psi()
  
 }

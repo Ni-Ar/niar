@@ -24,7 +24,7 @@ gene_name_2_ensembl_id(
 A character corresponding to an ensembl gene ID or a \code{data.frame}.
 }
 \description{
-Convenient converter from gene name to ensembl ID
+The ENSEMBL gene IDs are returned in the same order as the input gene names.
 }
 \examples{
 ensembl <- gimme_mart()

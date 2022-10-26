@@ -2,7 +2,7 @@
 % Please edit documentation in R/vst_utils.R
 \name{grep_gene_expression}
 \alias{grep_gene_expression}
-\title{Function to grep the expression values of a gene from a vast-tools output table.}
+\title{Grep the expression values of a gene from a vast-tools output table.}
 \usage{
 grep_gene_expression(
   vst_expression_tbl,
@@ -30,7 +30,7 @@ grep_gene_expression(
 a data.frame
 }
 \description{
-Function to grep the expression values of a gene from a vast-tools output table.
+Grep the expression values of a gene from a vast-tools output table.
 }
 \examples{
 grep_gene_expression(path_to_vst_Expression_tbl, ensembl_gene_id) |>
