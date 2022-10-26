@@ -257,6 +257,7 @@ ensembl_id_2_gene_name <- function(ensembl_gene_id, only_gene_name = TRUE,
 #' @return A character corresponding to an ensembl gene ID or a `data.frame`.
 #' @importFrom biomaRt getBM 
 #' @export
+#' @description The ENSEMBL gene IDs are returned in the same order as the input gene names.
 #'
 #' @examples
 #' ensembl <- gimme_mart()
@@ -298,7 +299,15 @@ gene_name_2_ensembl_id <- function(gene_name, only_ensembl_id = TRUE,
     return("Error")
   } 
   
-  # -- 2 -- Return some or all info ----
+  # -- 2 -- Sort the genes using the input order ----
+  # use factors to define the input order
+  goi_info$external_gene_name <- factor(goi_info$external_gene_name, gene_name) 
+  # order by external gene name
+  goi_info <- goi_info[order(goi_info$external_gene_name), ]
+  # turn external gene name back to character
+  goi_info$external_gene_name <- as.character(goi_info$external_gene_name)
+  
+  # -- 3 -- Return some or all info ----
   if ( only_ensembl_id == TRUE ) {
     
     ensembl_id <- goi_info$ensembl_gene_id
