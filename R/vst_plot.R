@@ -121,7 +121,8 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #' @import dplyr
 #' @import XICOR
 #' @export
-#' #' @description The plot title reports the correlation values of the:
+#' 
+#' @description The plot title reports the correlation values of the:
 #' \itemize{
 #' \item{ Spearman's rho }
 #' \item{ Pearson's r }
