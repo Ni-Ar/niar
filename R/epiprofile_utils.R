@@ -50,8 +50,8 @@ read_EpiProfile_histone_ratio <- function(histone_ratio_path) {
     'KATGPPVSELITKAVSASKER(H15_33_53)', 'unmod(H1_1_35)', 'unmod(H1_54_81)', 
     # H2A
     'KGNYAER(H2A1_36_42)', 'KGNYSER(H2A3_36_42)', 'KGHYAER(H2AX_36_42)', 
-    'GKQGGKAR(H2A1_4_11)', 'GKQGGKVR(H2AJ_4_11)', 'GKTGGKAR(H2AX_4_11)', 
-    'SGRGKQGGKAR(H2A1_1_11)', 'AGGKAGKDSGKAKAKAVSR(H2AV_1_19)', 
+    'GKQGGKAR(H2A1_4_11)', 'SGRGKQGGKAR(H2A1_1_11)', # these 2 give the same PTM
+    'GKQGGKVR(H2AJ_4_11)', 'GKTGGKAR(H2AX_4_11)', 'AGGKAGKDSGKAKAKAVSR(H2AV_1_19)', 
     'AGGKAGKDSGKAKTKAVSR(H2AZ_1_19)', 'AKAKTR(H2A1_12_17)', 'AKAKSR(H2A3_12_17)',
     'DNKKTR(H2A1_72_77)', 'unmod(H2A_1_88)',  "HLQLAIR(H2A_82_88)",
     # H2B
@@ -67,9 +67,12 @@ read_EpiProfile_histone_ratio <- function(histone_ratio_path) {
                      col_select = c(!matches("Empty")) ) |>
     # remove first line that contains info included in the header
     filter(row_number() != 1) |> 
+    ## THE READER FUNCTION SHOULD STOP HERE.
+    ## TAKE THIS PART AND TURN IT INTO A SEPARATE FUNCTION THAT ADDS THE Peptide_Type COLUMN.
     # Create a new column with the peptide type for that line
     mutate(Peptide_Type = case_when(First_Col %in% list_of_peptides ~ First_Col)) |> 
     relocate(Peptide_Type, .after = First_Col ) |>
+    # populate the Peptide_Type colum with all the protein seq for those modifications
     mutate(Peptide_Type = vec_fill_missing(Peptide_Type, direction = c("down"), max_fill = NULL ) ) |> 
     subset(First_Col != Peptide_Type) |> 
     # Turn data into long format and use positive lookbehind regex for splitting column names
@@ -106,6 +109,7 @@ tidy_hPTMs <- function(data, split_double_PTMs = FALSE, max_nchar_PTM = 20) {
     mutate(Histone = gsub("_[0-9]+_[0-9]+\\s", " ", First_Col)) |>
     mutate(Histone = str_split_fixed(string = Histone, pattern = " ", n = 2)[,1]) |>
     mutate(Modification = str_split_fixed(string = First_Col, pattern = " ", n = 2)[,2]) |>
+    relocate(Histone, Modification, .after = First_Col) |>
     # Parse the Histone Peptide info
     mutate(Peptide_Boundaries = str_extract(string = Peptide_Type, pattern = "(?<=\\()[A-Z].*(?=\\))") ) |>
     mutate(Peptide_Boundaries = str_extract(string = Peptide_Boundaries, pattern = "_[0-9]+_[0-9]+(?=$)") ) |>
@@ -114,13 +118,17 @@ tidy_hPTMs <- function(data, split_double_PTMs = FALSE, max_nchar_PTM = 20) {
     mutate(Peptide_End = as.integer(str_extract(string = Peptide_Boundaries, pattern = "(?<=\\s)[0-9]+(?=$)") ) ) |>
     mutate(Peptide_Sequence = str_remove(string = Peptide_Type, pattern = "\\([A-Z].*\\)") ) |>
     relocate(Peptide_Sequence, Peptide_Start, Peptide_End, .after = Peptide_Type) |>
-    relocate(Histone, Modification, .after = First_Col) |>
     select(!c(Peptide_Boundaries)) |>
+    # specify the 2 different H2A1K5ac coming from either H2A1_4_11 K5ac or H2A1_1_11 K5ac
+    mutate(Modification = ifelse(test = First_Col %in% c("H2A1_4_11 K5ac", "H2A1_1_11 K5ac"), 
+                                 yes =  paste0(Modification, "_", Peptide_Start, "-", Peptide_End),
+                                 no = Modification) ) |>
     # Label better Histone variants like H3.3
-    mutate(Histone = gsub("^H33", "H3.3", Histone ) ) %>%
+    mutate(Histone = gsub("^H33", "H3.3", Histone ) ) |>
+    # create a PTM only column and give better symbol for unmodified peptides
     mutate(PTM = case_when(Modification == "unmod" ~ paste0(Histone, "un ", Peptide_Start, "-", Peptide_End),
-                           Modification != "unmod" ~ paste0(Histone, Modification) ) )  %>%
-    mutate(PTM = str_trunc(string = PTM, width = max_nchar_PTM, side = "right" )) %>%
+                           Modification != "unmod" ~ paste0(Histone, Modification) ) ) |>
+    mutate(PTM = str_trunc(string = PTM, width = max_nchar_PTM, side = "right" )) |>
     relocate(PTM, .after = Modification) -> data
   
   # Split peptides with 2 modified lysines into 2 new columns called:
