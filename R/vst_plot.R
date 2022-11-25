@@ -99,12 +99,17 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 
 #' Plot a gene expression vs an alternatively spliced event PSI ( 1 vs 1)
 #'
+#' @description Plot gene expression on X-axis vs AS event PSI on Y-axis and calculate correlation between samples.
+#'
 #' @param data A `data.frame` with these column names: "Quality_Score_Value", "Gene_Expr", "PSI", "GENE", and "Sample". Header is case-sensitive.
 #' @param quality_thrshld vast-tools event quantification quality score threshold. Must be one of "N", "VLOW", "LOW", "OK", "SOK". For more info read the official documentation [here](https://github.com/vastgroup/vast-tools#combine-output-format) under "Column 8, score 1".
 #' @param external_gene_name An ensembl-gene-name. 
 #' @param vst_id vast-tools AS event ID.
 #' @param unit Was the vast-tools gene expression quantified in `cRPKMs` or `TPMs`?
+#' @param log_expr Logical. Should gene expression values on the X-axis be log2 transformed before calculating the correlations and plotting the data? Default `FALSE`. This influences only the Pearson (`r`) correlation, the other 3 are unaffected. 
 #' @param text Logical. Do you want to label the point in the plot. Uses `ggrepel`. Default `FALSE`.
+#' @param text_size Number How big should the text be? Default is `8`.
+#' @param label_size Number How big should the label text be? Default is `2.5`.
 #' @param beautify Remove pre-fixed or post-fixes from sample names. Kinda experimental.
 #' @param xzero Logical. Should x-axis start from zero?
 #' @param colour Either 'score' or 'PSI' to indicate if the points should be coloured by the AS event score (see `quality_thrshld`) or the PSI level. 
@@ -112,7 +117,7 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #' @param out_plot_dir Path specifing location where to save the plot pdf.
 #' @param verbose Lofical, print info on correlation.
 #' @param return_data Logical. Do not plot the data but just return the data used to plot. Default `FALSE`.
-#' @param subttl Character string in case you wanna add some info to the subtitle.
+#' @param subttl Character string in case you wanna add some info to the subtitle. For example one could specify the type of cell line or tissue.
 #'
 #' @return A ggplot2 plot or a `data.frame`.
 #' @import ggplot2
@@ -120,9 +125,10 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #' @import Cairo
 #' @import dplyr
 #' @import XICOR
+#' @importFrom Biostrings lcprefix
 #' @export
 #' 
-#' @description The plot title reports the correlation values of the:
+#' @details The plot title reports the correlation values of the:
 #' \itemize{
 #' \item{ Spearman's rho }
 #' \item{ Pearson's r }
@@ -140,22 +146,24 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
 #'                      ensembl_gene_id = gene_name ) |>
 #'     tidy_vst_expr() |>
 #' # 3. Join gene expression table to PSI table
-#'     left_join(psi_tbl, by = "Sample") |> 
+#' left_join(psi_tbl, by = "Sample") |> 
 #' # 4. Calculate correlations and plot
-#'     plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
-#'                             vst_id = "HsaEX0000001", text = TRUE,
-#'                             beautify = FALSE, xzero = FALSE, verbose = FALSE,
-#'                             subttl = "A great subtitle", 
-#'                             out_plot_dir = path_out, save_plot = TRUE)  
+#' plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
+#'                         vst_id = "HsaEX0000001", text = TRUE,
+#'                         beautify = TRUE, xzero = FALSE, verbose = FALSE,
+#'                         subttl = "A great subtitle", 
+#'                         out_plot_dir = path_out, save_plot = TRUE)  
+#'
 plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N", 
                                     external_gene_name, vst_id, 
-                                    unit, text = FALSE,
+                                    unit, log_expr = FALSE, text = FALSE,
+                                    text_size = 10, label_size = 3,
                                     beautify = FALSE, xzero = TRUE, 
                                     colour = c('score', 'PSI'), 
                                     save_plot = FALSE, out_plot_dir,
                                     verbose = TRUE, return_data = FALSE,
                                     subttl = NULL) {
-  # --- CHECK PARAMS ----
+  # ---- CHECK PARAMS ----- 
   if ( !any(quality_thrshld == c("N", "VLOW", "LOW", "OK", "SOK")) ) {
     stop("Can't understand the filtering option:\t", quality_thrshld,
          "\nThe parameter quality_thrshld must be one of N, VLOW, LOW, OK, or, SOK")
@@ -174,50 +182,53 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   
   
   data_required_cols <- c("Quality_Score_Value", "Gene_Expr", "PSI", "GENE", "Sample" )
-  if ( all(data_required_cols %in% colnames(data) ) ) {
+  if ( !all(data_required_cols %in% colnames(data) ) ) {
     
-    # # If XICOR is not yet installed, try to install it now
-    # if (! "XICOR" %in% installed.packages()[,"Package"] ) { 
-    #   warning("The R package 'XICOR' is not installed, I'm gonna install it now.")
-    #   install.packages("XICOR")
-    # }
-    
-  } else{
     missing_col <- which( ! data_required_cols %in% colnames(data_required_cols) )
     message("Input dataframe is missing the required columns: ", 
             paste0(data_required_cols[missing_col], collapse = " ") )
   }
   
+  if( !is.logical(log_expr)) {
+    stop("Parameter 'log_expr' must be TRUE or FALSE not: ", log_expr)
+  }
+
+  # Reduce text size.
+  if (save_plot == TRUE & text_size > 8 & label_size > 3) {
+    text_size <- 5
+    label_size <- 2
+  }
+    
   # Subset input data only for the one vst_id, in case data contains more than one.
   data <- subset(data, EVENT == vst_id)
   
-  # --- PLOT LAYOUT ----
-  theme_classic() +
+  # ---- PLOT LAYOUT ----
+  theme_classic(base_size = text_size, base_family = "Arial") +
     theme(legend.direction = "horizontal",
           legend.position = "bottom",
           legend.background = element_blank(),
-          legend.title = element_text(size = 8, vjust = 1),
-          legend.key.width = unit(16, "mm"),
-          legend.key.height = unit(1.8, "mm"),
-          legend.margin = margin(t = -2, b = -3.5, unit = "pt"),
+          legend.box.background = element_blank(),
+          legend.title = element_text(margin = margin(r = 0, unit = "mm")),
+          legend.text = element_text(margin = margin(l = -4, r = -4, unit = 'mm')),
+          legend.key = element_blank(),
+          legend.margin = margin(t = -1, b = -1, unit = "mm"),
+          legend.spacing.x = unit(5, "mm"),
+          legend.spacing.y = unit(0, "mm"),
           
           plot.background = element_blank(),
-          plot.caption = element_text(size = 5, margin = margin(t = -8, unit = "pt")),
-          plot.title = element_text(size = 9),
-          plot.subtitle = element_text(size = 8),
-          plot.tag = element_text(size = 5.75, face = "bold", color = "black"),
+          plot.title = element_text(colour = "black"),
+          plot.subtitle = element_text(colour = "black"),
           
           panel.background = element_blank(),
           panel.grid.major.y = element_line(colour = 'grey73', size = 0.5),
           
-          axis.text = element_text(colour = "black", size = 8),
-          axis.title = element_text(colour = "black", size = 8),
+          axis.text = element_text(colour = "black"),
+          axis.title = element_text(colour = "black"),
           axis.ticks.length.y = unit(2, units = "mm"),
           
           strip.background = element_blank() ) -> niar_theme
   
-  # --- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld ---
-  # Set the Score 1 quality values as factors 
+  # ---- KEEP SAMPLES WITH AS QUALITY >= quality_thrshld ----
   Quality_Score_Values <- c("N", "VLOW", "LOW", "OK", "SOK")
   data$Quality_Score_Value <- factor(data$Quality_Score_Value,
                                      Quality_Score_Values)
@@ -225,7 +236,13 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   num_quality_thrshld <- as.numeric(factor(quality_thrshld, levels = Quality_Score_Values))
   data <- subset(data, as.numeric(Quality_Score_Value) >= num_quality_thrshld)
   
-  # --- CORRELATION EXPRESSION vs PSI  --- 
+  # ---- LOG TRANSFORM GENE EXPRESSION ---- 
+  if ( log_expr == TRUE) {
+    data$Gene_Expr <- log2(data$Gene_Expr)
+  }
+  
+  
+  # ---- CORRELATION EXPRESSION vs PSI ----
   # Spearmann
   expr_psi_sprmn <- cor(data$Gene_Expr, data$PSI, use = "complete.obs",
                         method = "spearman") 
@@ -254,49 +271,72 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
             " Kendall: ", expr_psi_kndl, " Chatterjee: ", expr_psi_chttrj)
   }
   
-  if ( beautify ) {
-    suppressPackageStartupMessages( require(Biostrings) )
+  # ---- PREFIX & SUFFIX REMOVAL ----
+  if ( beautify == TRUE) {
+    # FIND PREFIX
     names <- sort(unique(data$Sample))
     random_names <- base::sample(x = names, size = 2)
     # Try to remove the longest common prefix from the sample names
     # This looks 2 random elements in the names and checks what prefix they have 
     # in common and removes if from the plotted sample names.
-    # PREFIX
     nchar_common_prefix <- Biostrings::lcprefix(s1 = random_names[1],
                                                 s2 = random_names[2])
-    
-    if ( nchar_common_prefix > 0 ) {
+    if( nchar_common_prefix > 0 ) {
       common_prefix <- substr(random_names[1], start = 1, stop = nchar_common_prefix)
-      if (verbose) { message("Found prefix: ", common_prefix) }
-      data <- data |>
-        dplyr::mutate(Pretty_Sample = gsub(pattern = paste0("^", common_prefix),
-                                           replacement = "", x = Sample,
-                                           ignore.case = T, perl = F))
     } else {
-      if (verbose) { message("Couldn't find common prefix.") }
-      data <- data |> dplyr::mutate(Pretty_Sample =  Sample)
+      common_prefix <- substr(random_names[1], start = 1, stop = nchar_common_prefix)
     }
     
+    # FIND SUFFIX
     # Try to remove the longest AND most abundant common suffix from 
     # sample names with the a somewhat similar approach as for the prefixes
-    # SUFFIX
     common_suffix <- longest_most_abundant_common_suffix(x = names, k = 80)
+    nchar_common_suffix <- nchar(common_suffix)
+    # Catch when there are no common suffix and the character are zero
+    if( identical(nchar_common_suffix, integer(0)) ) { nchar_common_suffix <- 0 }
     
-    if ( length(nchar(common_suffix)) > 0 ) {
+    
+    if ( nchar_common_prefix > 0 & nchar_common_suffix > 0 ) {
       
+      if (verbose) { message("Found prefix: ", common_prefix) }
       if (verbose) { message("Found suffix: ", common_suffix) }
-      data <- data |>
-        dplyr::mutate(Pretty_Sample = gsub(pattern = paste0(common_suffix, "$"),
-                                           replacement = "", x = Sample,
-                                           ignore.case = T, perl = F) )
+      
+      data <- mutate(data, 
+                     Pretty_Sample = gsub(pattern = paste0("^", common_prefix),
+                                          replacement = "", x = Sample,
+                                          ignore.case = T, perl = F) ) |>
+        mutate(Pretty_Sample = gsub(pattern = paste0(common_suffix, "$"),
+                                    replacement = "", x = Pretty_Sample,
+                                    ignore.case = T, perl = F) )
+      
+    } else if ( nchar_common_prefix > 0 & nchar_common_suffix <= 0 ) {
+      if (verbose) { message("Found prefix: ", common_prefix) }
+      if (verbose) { message("Couldn't find common suffix") }
+      
+      data <- mutate(data, 
+                     Pretty_Sample = gsub(pattern = paste0("^", common_prefix),
+                                          replacement = "", x = Sample,
+                                          ignore.case = T, perl = F) )
+      
+    } else if ( nchar_common_prefix <= 0 & nchar_common_suffix > 0 ) { 
+      if (verbose) {  message("Couldn't find common prefix.") }
+      if (verbose) { message("Found suffix: ", common_suffix) }
+      
+      data <- mutate(data, 
+                     Pretty_Sample = gsub(pattern = paste0(common_suffix, "$"),
+                                          replacement = "", x = Sample,
+                                          ignore.case = T, perl = F) )
+      
+    } else if ( nchar_common_prefix <= 0 & nchar_common_suffix <= 0 ) {
+      if (verbose) {  message("Couldn't find common prefix.") }
+      if (verbose) { message("Couldn't find common suffix") }
+      data <- mutate(data, Pretty_Sample = Sample)
     } else {
-      if (verbose) { message("Couldn't find common prefix.") }
-      data <- data |> dplyr::mutate(Pretty_Sample =  Sample)
+      warning("Coulnd't figure out the prefix and suffix of sample names")
     }
-    # Maybe in the future this could be improved...?
   }
   
-  # --- PLOT --- 
+  # ---- PLOT ----
   AS_EVENT_GENE <- unique(data$GENE)
   
   info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vst_id, " (",
@@ -304,13 +344,24 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
                      ", r ", expr_psi_prsn, ", \u03c4 ", expr_psi_kndl,
                      ", \u03be ", expr_psi_chttrj)
   
+  if ( log_expr == TRUE) {
+    X_axis_ttl <- paste0(external_gene_name, " ", unit, " (log2)")
+    
+  } else if ( log_expr == FALSE ) {
+    X_axis_ttl <- paste0(external_gene_name, " ", unit)
+  } else {
+    warning(' Not sure whether the X-axis was log2 transformed')
+    X_axis_ttl <- paste0(external_gene_name, " ", unit)
+  }
+  
+  
   ggplot(data) +
     aes(x = Gene_Expr, y = PSI) +
     stat_smooth(method = 'lm', formula = 'y ~ x', se = T, level = 0.95,
                 colour = 'black', size = 0.5) +
     coord_cartesian(ylim = c(0, 100), clip = 'off', default = TRUE)  +
     scale_x_continuous(n.breaks = 10) +
-    labs(title = info_ttl, x = paste0(external_gene_name, " ", unit),
+    labs(title = info_ttl, x = X_axis_ttl,
          subtitle = subttl)  +
     ylab( bquote(.(AS_EVENT_GENE)~.(vst_id)~~Psi) ) +
     niar_theme -> cor_plot
@@ -323,24 +374,25 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   
   # Decide if showing sample names as text
   if ( text ) {
-    suppressPackageStartupMessages( require( ggrepel ) )
     # Try to plot at best half of the sample names
     n_samples <- length(unique(data$Sample))
     k <- 2
     max_n_text <- ( floor(n_samples/k) + k)
     
-    if ( beautify ) { # Plot pretty names
+    if ( beautify == TRUE ) { # Plot pretty names
       cor_plot <- cor_plot + 
-        geom_text_repel(aes(label = Pretty_Sample), size = 2.25, 
+        geom_text_repel(aes(label = Pretty_Sample), size = label_size,
                         max.overlaps = max_n_text, min.segment.length = 0.25,
                         segment.size = 0.25, segment.alpha = 0.75, max.time = 2,
-                        seed = 16, na.rm = T, show.legend = F, verbose = verbose)
+                        seed = 16, na.rm = T, show.legend = F, verbose = verbose,
+                        family = "Arial")
     } else { # or plot regular names
       cor_plot <- cor_plot + 
-        geom_text_repel(aes(label = Sample), size = 2.25, 
+        geom_text_repel(aes(label = Sample), size = label_size, 
                         max.overlaps = max_n_text, min.segment.length = 0.25,
                         segment.size = 0.25, segment.alpha = 0.75, max.time = 2,
-                        seed = 16, na.rm = T, show.legend = F, verbose = verbose)
+                        seed = 16, na.rm = T, show.legend = F, verbose = verbose,
+                        family = "Arial")
     }
   }
   
@@ -350,22 +402,24 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
     names(quality_score_colors) <- Quality_Score_Values
     
     cor_plot <-  cor_plot +
-      geom_point(aes(fill = Quality_Score_Value), shape = 21, size = 3) +
-      scale_fill_manual(values = quality_score_colors) 
+      geom_point(aes(fill = Quality_Score_Value), shape = 21, size = 1.25,stroke = 0.25) +
+      scale_fill_manual(values = quality_score_colors, name = "PSI Quality") 
     
   } else if ( colour == 'PSI' ) {
     
     cor_plot <- cor_plot +
-      geom_point(aes(fill = PSI), shape = 21, size = 3) +
+      geom_point(aes(fill = PSI), shape = 21, size = 1.25, stroke = 0.25) +
       scale_fill_gradient2(low = "#E317BF", mid = "#E3C22D", high = "#11E3DA",
-                           midpoint = 50, limits = c(0, 100) ) + 
-      guides(fill = guide_colorbar(barwidth = grid::unit(x = 11, "cm") ) ) 
+                           midpoint = 50, limits = c(0, 100), name = "PSI" ) + 
+      guides(fill = guide_colorbar(barwidth = grid::unit(x = 6, "cm"),
+                                   barheight = grid::unit(x = 2, "mm") ) )
+      
     
   } else {
     stop("Colour option is not defined correctly! colour = must be either 'score' or 'PSI'.")
   }
   
-  # --- RETURN OR EXPORT PLOT AS PDF
+  # ---- RETURN OR EXPORT PLOT AS PDF ----
   if (save_plot) {
     # Plot name contains filtering decisions
     if ( quality_thrshld == "N") {
@@ -374,11 +428,24 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
       filtering_name <- paste0("fltrd", quality_thrshld)
     }
     
-    sub_ttl_name <- gsub(pattern = " ", replacement = "_", subttl)
+    if ( !is.null(subttl)) {
+      sub_ttl_name <- gsub(pattern = " ", replacement = "_", subttl)
+    } else {
+      sub_ttl_name <- "samples"
+    }
     
-    snazzy_plt_name <- paste(external_gene_name, unit, 
-                             vst_id, "PSI", filtering_name, sub_ttl_name,
-                             "expr_psi_correlations.pdf", sep = "_")
+    if (log_expr == TRUE) {
+      transform_name <- "log2GeneExpr"
+    } else if( log_expr == FALSE) {
+      transform_name <- ""
+    } else {
+      transform_name <- ""
+      warning("param log_expr is not clear to me.")
+    }
+    
+    snazzy_plt_name <- paste(external_gene_name, unit, vst_id, "PSI", 
+                             filtering_name, transform_name, sub_ttl_name,
+                             "corr.pdf", sep = "_")
     
     # If output plot dir doesn't exists create it.
     if (!dir.exists(out_plot_dir)) { dir.create(out_plot_dir, recursive = T) }
@@ -390,7 +457,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
            plot = cor_plot,
            path = out_plot_dir,
            units = "cm",
-           width = 18, height = 10,
+           width = 10, height = 9,
            device = cairo_pdf)
     
     if (verbose) { message("Plot: ", snazzy_plt_name, " saved in:\n", out_plot_dir) }
