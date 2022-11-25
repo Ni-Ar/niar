@@ -10,7 +10,10 @@ plot_corr_gene_expr_psi(
   external_gene_name,
   vst_id,
   unit,
+  log_expr = FALSE,
   text = FALSE,
+  text_size = 10,
+  label_size = 3,
   beautify = FALSE,
   xzero = TRUE,
   colour = c("score", "PSI"),
@@ -32,7 +35,13 @@ plot_corr_gene_expr_psi(
 
 \item{unit}{Was the vast-tools gene expression quantified in \code{cRPKMs} or \code{TPMs}?}
 
+\item{log_expr}{Logical. Should gene expression values on the X-axis be log2 transformed before calculating the correlations and plotting the data? Default \code{FALSE}. This influences only the Pearson (\code{r}) correlation, the other 3 are unaffected.}
+
 \item{text}{Logical. Do you want to label the point in the plot. Uses \code{ggrepel}. Default \code{FALSE}.}
+
+\item{text_size}{Number How big should the text be? Default is \code{8}.}
+
+\item{label_size}{Number How big should the label text be? Default is \code{2.5}.}
 
 \item{beautify}{Remove pre-fixed or post-fixes from sample names. Kinda experimental.}
 
@@ -48,12 +57,15 @@ plot_corr_gene_expr_psi(
 
 \item{return_data}{Logical. Do not plot the data but just return the data used to plot. Default \code{FALSE}.}
 
-\item{subttl}{Character string in case you wanna add some info to the subtitle.}
+\item{subttl}{Character string in case you wanna add some info to the subtitle. For example one could specify the type of cell line or tissue.}
 }
 \value{
 A ggplot2 plot or a \code{data.frame}.
 }
 \description{
+Plot gene expression on X-axis vs AS event PSI on Y-axis and calculate correlation between samples.
+}
+\details{
 The plot title reports the correlation values of the:
 \itemize{
 \item{ Spearman's rho }
@@ -72,11 +84,12 @@ grep_gene_expression(vst_expression_tbl = expression_tbl_path,
                      ensembl_gene_id = gene_name ) |>
     tidy_vst_expr() |>
 # 3. Join gene expression table to PSI table
-    left_join(psi_tbl, by = "Sample") |> 
+left_join(psi_tbl, by = "Sample") |> 
 # 4. Calculate correlations and plot
-    plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
-                            vst_id = "HsaEX0000001", text = TRUE,
-                            beautify = FALSE, xzero = FALSE, verbose = FALSE,
-                            subttl = "A great subtitle", 
-                            out_plot_dir = path_out, save_plot = TRUE)  
+plot_corr_gene_expr_psi(external_gene_name = gene_name, unit = "TPM",
+                        vst_id = "HsaEX0000001", text = TRUE,
+                        beautify = TRUE, xzero = FALSE, verbose = FALSE,
+                        subttl = "A great subtitle", 
+                        out_plot_dir = path_out, save_plot = TRUE)  
+
 }
