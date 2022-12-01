@@ -6,11 +6,11 @@
 \usage{
 gimme_mart(
   species = "hsapiens",
-  latest = TRUE,
-  use_mirror = FALSE,
-  which_mirror,
+  version = "latest",
+  verbose = TRUE,
   out_dir = FALSE,
-  verbose = FALSE
+  use_mirror = FALSE,
+  which_mirror
 )
 }
 \arguments{
@@ -22,9 +22,18 @@ gimme_mart(
 \item{\code{ggallus} - Chicken (Gallus Gallus)}
 }}
 
-\item{latest}{Logical. Do you want to use the latest biomart version? Default \code{TRUE}. If \code{FALSE} penultimate version is used.}
+\item{version}{Which database version of biomart do you want? Use:
+\itemize{
+\item{\code{latest} - for the latest version of the database. }
+\item{\code{penultimate} - for the one before the latest version of the database. }
+\item{\code{number} - a specific version of the biomart database. If the version you query is not available an error is returned.}
+}}
 
-\item{use_mirror}{Logical. Do you want to use a mirror for creating the biomart object? Default \code{FALSE}.}
+\item{verbose}{Logical. Print the version and genome assembly for the species queried. Default \code{TRUE}.}
+
+\item{out_dir}{Either \code{FALSE} (default) or a character specifying a path where to save the biomaRt object. If directory does not exist it will be created.}
+
+\item{use_mirror}{Logical. Do you want to use a mirror for creating the biomart object? Default \code{FALSE}. If \code{TRUE} the parameter version will be converted to \code{TRUE}.}
 
 \item{which_mirror}{Specify which biomart mirror to use. Chose from:
 \itemize{
@@ -33,18 +42,14 @@ gimme_mart(
 \item{\code{useast} - US East (Amazon AWS) on East Coast of US of America}
 \item{\code{asia} - Asia (Amazon AWS) in Singapore}
 }}
-
-\item{out_dir}{Either \code{FALSE} (default) or a character specifying a path where to save the biomaRt object. If directory does not exist it will be created.}
-
-\item{verbose}{Logical. Print info messages? Default \code{FALSE}.}
 }
 \value{
 A biomaRt ensembl object
 }
 \description{
-Handy function to create a biomaRt R object based on the ENSEMBL database to be used when querying biomart
+A function to get a biomaRt object during an R analysis that can later on be used for retrieving gene IDs, coordinates and more.
 }
 \examples{
-# Human ENSEMBL biomaRT object
-ensembl <- gimme_mart()
+# Human ENSEMBL biomaRt object
+human_ensembl <- gimme_mart()
 }

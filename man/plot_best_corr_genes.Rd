@@ -4,10 +4,12 @@
 \alias{plot_best_corr_genes}
 \title{Plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels. (1 vs many)}
 \usage{
-plot_best_corr_genes(data, ...)
+plot_best_corr_genes(data, num_genes, ...)
 }
 \arguments{
 \item{data}{A tibble generated with \verb{all_gene_expr_corr(num_genes = <NUM>, map_ID_2_names = T)}}
+
+\item{num_genes}{How many top and bottom genes to plot? A vector of length 2 specifying the number of genes to plot for the bottom and for the top correlating genes. Must be above 0.}
 
 \item{...}{Extra parameters passed to \code{geom_point}}
 }
@@ -18,11 +20,10 @@ A ggplot2 plot.
 Plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels. (1 vs many)
 }
 \examples{
-#' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
-                   vst_expression_tbl = expr_path, corr_method = "spearman", 
-                   verbose = F, use = "complete.obs",
-                   quality_thrshld = "LOW",
-                   num_genes = 10, expr_min_mean_fltr = 10,
-                   map_ID_2_names = T, species = "hsapiens") |>
+#' gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+                       vst_expression_tbl = expr_path, corr_method = "spearman", 
+                       verbose = F, use = "complete.obs", quality_thrshld = "LOW",
+                       num_genes = 10, expr_min_mean_fltr = 10,
+                       map_ID_2_names = T, species = "hsapiens") |>
                    plot_best_corr_genes(size = 5, stroke = 0.25)  
 }

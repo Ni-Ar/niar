@@ -7,7 +7,7 @@
 plot_corr_dist(data, binwidth = 0.05)
 }
 \arguments{
-\item{data}{A tibble generated with \code{all_gene_expr_corr}.}
+\item{data}{A tibble generated with \code{gimme_PSI_expr_corr}.}
 
 \item{binwidth}{Correlation bins width. Default 0.05.}
 }
@@ -18,8 +18,8 @@ A ggplot2 plot.
 Nice plot to check the density distribution of the correlation of one AS event PSI vs all genes expression levels.
 }
 \examples{
-all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
-                   vst_expression_tbl = expr_path, corr_method = "spearman", 
-                   verbose = F, use = "complete.obs") |>
-                   plot_corr_dist()      
+gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+                    vst_expression_tbl = expr_path, corr_method = "spearman", 
+                    verbose = F, use = "complete.obs") |>
+                    plot_corr_dist()
 }

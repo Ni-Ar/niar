@@ -32,6 +32,6 @@ Work in PROGRESS. Convert a general DEseq2 result object into a data frame.
 \examples{
 
 # Somewhere in your DESeq2 analysis
-resLFC <- lfcShrink(dds, coef="condition_treated_vs_untreated", type="apeglm")
+resLFC <- lfcShrink(dds, coef = "condition_treated_vs_untreated", type = "apeglm")
 res_as_df <- res2df(resLFC)
 }
