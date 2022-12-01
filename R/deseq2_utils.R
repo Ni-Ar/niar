@@ -61,6 +61,7 @@ res2df <- function(res, map_gene_IDs = F, histone_PTMs = F, pval_cutoff = 0.05,
 #' @importFrom tibble rownames_to_column as_tibble
 #' @importFrom dplyr mutate
 #' @importFrom tidyr pivot_longer
+#' @importFrom tidyselect contains
 #' @export
 #'
 #' @examples
@@ -90,11 +91,17 @@ dds2counts <- function(deseq_dataset, tidy = T, counts_are_genes = T, norm_count
   counts(deseq_dataset, normalized = norm_counts) |>
     as.data.frame() |>
     rownames_to_column(rownames_ID) |>
-    as_tibble() |>
-    mutate(ensembl_gene_id = str_remove(string = ensembl_gene_id, pattern = "\\.[0-9]*$") ) -> counts
+    as_tibble() -> counts
+  
+  if (counts_are_genes == TRUE) {
+    # remove the version (.X) from the ensembl gene id
+    counts <- mutate(counts, 
+                     ensembl_gene_id = str_remove(string = ensembl_gene_id, 
+                                                  pattern = "\\.[0-9]*$") ) 
+  }
   
   if (tidy == TRUE) {
-    counts <- pivot_longer(data = counts, cols = !c(rownames_ID), 
+    counts <- pivot_longer(data = counts, cols = !contains(rownames_ID), 
                            names_to = "Sample", values_to = val_col_name)
   }
   
@@ -106,6 +113,7 @@ dds2counts <- function(deseq_dataset, tidy = T, counts_are_genes = T, norm_count
 #' @param deseq_dataset 
 #' @param xlim 
 #' @param title 
+#' @param min_counts Small number of pseudocounts added to the normalised counts before the `log2()`.
 #'
 #' @return A nice ggplot2 density plot
 #' @import ggplot2
@@ -116,17 +124,27 @@ dds2counts <- function(deseq_dataset, tidy = T, counts_are_genes = T, norm_count
 #' show_dds_counts_freq(dds)
 show_dds_counts_freq <- function(deseq_dataset, xlim = c(0, 20),
                                  title = "Here goes the title", min_counts = 5) {
-  # to return normalised counts first estimate size factors.
-  deseq_dataset <- estimateSizeFactors(deseq_dataset)
+  # To return normalised counts first estimate size factors.
+  # If the dds is coming from tximeta import the average transcript lengths 
+  # are used as offsets which are gene- and sample-specific normalization factors
+  if( is.null(normalizationFactors(deseq_dataset) ) ) {
+    deseq_dataset <- estimateSizeFactors(deseq_dataset, quiet = T)
+  } 
+  # if ( is.null(sizeFactors(deseq_dataset) ) ) {
+  #   
+  #     
+  #   deseq_dataset <- estimateSizeFactors(deseq_dataset, quiet = T)
+  # }
+
   
   dds2counts(deseq_dataset, tidy = T, norm_counts = T) |>
-    ggplot(aes (x = log2(Norm_counts) + 0.5,  y = after_stat(density), fill = Sample ) ) +
-    geom_vline(xintercept = log2(min_counts) + 0.5, linetype = 'solid',
+    ggplot(aes(x = log2(Norm_counts + 0.5), y = after_stat(density), fill = Sample)) +
+    geom_vline(xintercept = log2(min_counts + 0.5) , linetype = 'solid',
                color = 'firebrick1') +
-    geom_density(show.legend = F, alpha = 0.3) +
+    geom_density(show.legend = F, alpha = 0.25) +
     scale_x_continuous(limits = xlim, expand = expansion(add = 0, mult = c(0, 0.05) )) +
     scale_y_continuous(expand = expansion(add = 0, mult = c(0, 0.05))) +
-    labs(x = "log2(DESeq2 Normalised counts) + 0.5", y = "Density",
+    labs(x = "log2(DESeq2 Normalised counts + 0.5)", y = "Density",
          title = title) +
     theme_bw(base_family = "Arial") + 
     theme(axis.text = element_text(colour = "black"),
@@ -260,6 +278,7 @@ filter_dds <- function(deseq_dataset, filt_method = c("sum", "mean", "max"),
 #' @export
 #'
 #' @examples
+#' save_counts(dds, name = "Your_comparison_long", out_dir = "/path/to/dir")
 save_counts <- function(deseq_dataset, name, out_dir, tidy = TRUE, ... ) {
   
   counts <- dds2counts(deseq_dataset, tidy = tidy, ...)
@@ -297,14 +316,15 @@ save_counts <- function(deseq_dataset, name, out_dir, tidy = TRUE, ... ) {
 #' @param pval_adj_thrshold 
 #' @param out_dir 
 #'
-#' @return
+#' @return Nothing, this function writes to file.
 #' @export
 #'
 save_df_gsea_list <- function(res, name, map_df, baseMean_thrshold = 300, 
                               pval_adj_thrshold = 0.001, out_dir) {
   
   # the mapper df must have a column with the gene biotype to filter for protein coding genes.
-  stopifnot(any(colnames(mapper_df) == "gene_biotype"))
+  stopifnot(any(colnames(map_df) == "ensembl_gene_id"))
+  stopifnot(any(colnames(map_df) == "gene_biotype"))
   
   # create output subfolders
   out_dir_res <- file.path(out_dir, "gene_tables", format(Sys.Date(), "%Y_%m_%d") )
@@ -316,7 +336,7 @@ save_df_gsea_list <- function(res, name, map_df, baseMean_thrshold = 300,
   res <- res2df(res) |>
     mutate(ensembl_gene_id = str_remove(string = ensembl_gene_id, pattern = "\\.[0-9]*$")) 
   
-  out_df <- left_join(x = res, y = map_df,  by = "ensembl_gene_id") 
+  out_df <- left_join(x = res, y = map_df, by = "ensembl_gene_id") 
   
   out_tab <- file.path(out_dir_res, paste0(name, '_n', nrow(out_df), '.tab'))
   
