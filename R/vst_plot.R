@@ -224,7 +224,9 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
           
           axis.text = element_text(colour = "black"),
           axis.title = element_text(colour = "black"),
-          axis.ticks.length.y = unit(2, units = "mm"),
+          axis.title.x = element_text(margin = margin(t = 0, unit = 'mm')),
+          axis.title.y = element_text(margin = margin(r = -0.5, unit = 'mm')),
+          axis.ticks.length.y = unit(1, units = "mm"),
           
           strip.background = element_blank() ) -> niar_theme
   
@@ -339,8 +341,8 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   # ---- PLOT ----
   AS_EVENT_GENE <- unique(data$GENE)
   
-  info_ttl <- paste0("GENE: ", external_gene_name, "  ~  ID: ", vst_id, " (",
-                     AS_EVENT_GENE, ")", "      ", "\u03c1 ", expr_psi_sprmn,
+  info_ttl <- paste0(external_gene_name, " ~ ", vst_id, " (",
+                     AS_EVENT_GENE, ")", " ", "\u03c1 ", expr_psi_sprmn,
                      ", r ", expr_psi_prsn, ", \u03c4 ", expr_psi_kndl,
                      ", \u03be ", expr_psi_chttrj)
   
@@ -671,7 +673,7 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
 
 #' Nice plot to check the density distribution of the correlation of one AS event PSI vs all genes expression levels.
 #'
-#' @param data A tibble generated with `all_gene_expr_corr`.
+#' @param data A tibble generated with `gimme_PSI_expr_corr`.
 #' @param binwidth Correlation bins width. Default 0.05. 
 #'
 #' @return A ggplot2 plot.
@@ -679,10 +681,10 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
 #' @export
 #'
 #' @examples
-#' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
-#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
-#'                    verbose = F, use = "complete.obs") |>
-#'                    plot_corr_dist()      
+#' gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                     vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                     verbose = F, use = "complete.obs") |>
+#'                     plot_corr_dist()
 plot_corr_dist <- function(data, binwidth = 0.05 ){
   num_genes <- nrow(data)
   ggplot(data) +
@@ -710,6 +712,7 @@ plot_corr_dist <- function(data, binwidth = 0.05 ){
 #' Plot to check the top and bottom correlating genes of one AS event PSI vs all genes expression levels. (1 vs many)
 #'
 #' @param data A tibble generated with `all_gene_expr_corr(num_genes = <NUM>, map_ID_2_names = T)`
+#' @param num_genes How many top and bottom genes to plot? A vector of length 2 specifying the number of genes to plot for the bottom and for the top correlating genes. Must be above 0.
 #' @param ... Extra parameters passed to `geom_point` 
 #'
 #' @return A ggplot2 plot.
@@ -717,14 +720,13 @@ plot_corr_dist <- function(data, binwidth = 0.05 ){
 #' @export
 #'
 #' @examples
-#' #' all_gene_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
-#'                    vst_expression_tbl = expr_path, corr_method = "spearman", 
-#'                    verbose = F, use = "complete.obs",
-#'                    quality_thrshld = "LOW",
-#'                    num_genes = 10, expr_min_mean_fltr = 10,
-#'                    map_ID_2_names = T, species = "hsapiens") |>
+#' #' gimme_PSI_expr_corr(inclusion_tbl = psi_path, vst_id = "HsaEX0000001", 
+#'                        vst_expression_tbl = expr_path, corr_method = "spearman", 
+#'                        verbose = F, use = "complete.obs", quality_thrshld = "LOW",
+#'                        num_genes = 10, expr_min_mean_fltr = 10,
+#'                        map_ID_2_names = T, species = "hsapiens") |>
 #'                    plot_best_corr_genes(size = 5, stroke = 0.25)  
-plot_best_corr_genes <- function(data, ...) {
+plot_best_corr_genes <- function(data, num_genes, ...) {
   
   required_cols <- c("Correlation", "external_gene_name")    
   if (!all(required_cols %in% colnames(data) )) {
@@ -732,23 +734,40 @@ plot_best_corr_genes <- function(data, ...) {
          paste0(required_cols, collapse = ", "))
   }
   
+  if ( !missing(num_genes) ) {
+      if ( length(num_genes) == 1 ) {
+          num_genes <- rep(x = num_genes, times = 2)
+      } else if ( length(num_genes) >= 3 ){
+          num_genes <- num_genes[1:2]
+      } else if ( any(num_genes < 1) ) {
+          num_genes <- c(1,1)
+      }
+  }
   
-  left_nudge <- round((min(data$Correlation) - 0) * 0.01, 3)
-  right_nudge <-  round((max(data$Correlation) - 0) * 0.01, 3)
+  if( missing(num_genes) ) {
+      data_plot <- data
+  } else {
+      data |> (\(x) {
+          rbind( head(x, num_genes[2]), tail(x, num_genes[1]) )
+      })() -> data_plot
+  }
+ 
+   left_nudge <- round((min(data_plot$Correlation) - 0) * 0.01, 3)
+  right_nudge <-  round((max(data_plot$Correlation) - 0) * 0.01, 3)
   
-  ggplot(data) +
+  ggplot(data_plot) +
     aes(x = Correlation, y = external_gene_name, fill = Correlation) +
     geom_segment(aes(x = 0, xend = Correlation, yend = external_gene_name)) +
     geom_point(shape = 21, ...) +
     
     # Positively correlating genes in the plot
     geom_text(inherit.aes = F, 
-              data = subset(data, Correlation >= 0),
+              data = subset(data_plot, Correlation >= 0),
               aes(label = external_gene_name, x = 0, y = external_gene_name),
               nudge_x = left_nudge, hjust = 1 ) +
     # Negatively correlating genes in the plot
     geom_text(inherit.aes = F, 
-              data = subset(data, Correlation < 0),
+              data = subset(data_plot, Correlation < 0),
               aes(label = external_gene_name, x = 0, y = external_gene_name),
               nudge_x = right_nudge, hjust = 0 ) +
     
