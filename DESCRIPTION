@@ -29,8 +29,8 @@ Imports:
 	DESeq2 (>= 1.34.0),
 	biomaRt (>= 2.50.3),
 	csaw (>= 1.28.0),
-	MetBrewer (>=0.2.0),
-	Cairo (>=1.6)	
+	MetBrewer (>= 0.2.0),
+	Cairo (>= 1.6-0),
 Suggests: 
     rmarkdown,
     knitr,
