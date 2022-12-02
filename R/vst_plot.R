@@ -483,7 +483,6 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
 #'
 #' @return A ggplot2 plot or a pdf.
 #' @import ggplot2 
-#' @import scales
 #' @import Cairo
 #' @import MetBrewer
 #' @export
@@ -497,7 +496,9 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
                                     out_plot_dir = NULL, width = 7, height = 7) {
 
     # Check params 
-    if ( missing(data_tbl) ) { stop("You didn't specified an table generated with `get_mouse_tissue_devel_tbl`!") } 
+    if ( missing(data_tbl) ) { 
+      stop("You didn't specified an table generated with `get_mouse_tissue_devel_tbl`!") 
+      } 
     
     if( is.null(title) ) {
         title <- unique(paste0(data_tbl$GENE, " ~ ", data_tbl$EVENT))
@@ -524,7 +525,6 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
               plot.background = element_blank(),
               panel.background = element_blank(),
               panel.grid.major.y = element_line(colour = "gray84", size = 0.2) ) -> core_plot
-    
     
     if (legend == 'inside') {
         core_plot +
@@ -590,7 +590,7 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
         
     } else if ( legend == "outside") {
         core_plot +
-            scale_fill_gradientn(colors = MetBrewer::met.brewer("Hiroshige", 9, direction = -1),
+            scale_fill_gradientn(colors = met.brewer("Hiroshige", 9, direction = -1),
                                  breaks = c(0, 25, 50, 75, 100), name = "Mean PSI", 
                                  limits = c(0, 100), na.value = "gray84",
                                  labels = c("0 (Skipping)", 25, 50, 75, "100 (Inclusion)") ) +
@@ -635,19 +635,20 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
         width <- width + 0.5
         
     } else{
-        stop("'legend' must specify the position of the legend relative to the plot.")
+        stop("The parameter 'legend' must specify the position of the legend relative to the plot.")
     }
 
-    if (is.null(plot_name) ) {
+    if ( is.null(plot_name) ) {
         plot_name <- paste0("Mouse_Devel_", unique(data_tbl$GENE), "_Expr_", 
                             unique(data_tbl$EVENT), "_PSI_", 
                             width, "x", height, "cm.pdf" ) 
     }
-    
+    ## This needs to be double checked... what was I doing here? Why 2 ifs for save_plot?
     if (save_plot) {
         if( is.null (out_plot_dir) ) { 
             anal_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/analysis')
-            out_plot_dir <- file.path(anal_dir, 'tools_output/ENCODE_Mouse_Development', format(Sys.Date(), "%Y_%m_%d"))
+            out_plot_dir <- file.path(anal_dir, 'tools_output/ENCODE_Mouse_Development', 
+                                      format(Sys.Date(), "%Y_%m_%d"))
         }
     }
 
@@ -666,7 +667,7 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
         return(final_plot)
         
     } else {
-        stop("`save_plot` must be logical! Either TRUE or FALSE")
+        stop("The parameter `save_plot` must be logical, either TRUE or FALSE!")
     }
        
 }
