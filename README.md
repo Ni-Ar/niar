@@ -116,4 +116,3 @@ These functions are basically “hacks” that call the system `grep` command, w
 - [ ] Make vignette for `biomaRt` functions 
 - [ ] Make vignette for vast-tools utility and plotting functions, especially correlations. 
 - [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
-- [ ] Add my [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) handy functions.
