@@ -2,7 +2,7 @@
 % Please edit documentation in R/deseq2_utils.R
 \name{res2df}
 \alias{res2df}
-\title{Work in PROGRESS. Convert a general DEseq2 result object into a data frame.}
+\title{Work in PROGRESS. Convert a general DESeq2 result object into a data frame.}
 \usage{
 res2df(
   res,
@@ -27,7 +27,7 @@ res2df(
 A tibble data frame
 }
 \description{
-Work in PROGRESS. Convert a general DEseq2 result object into a data frame.
+Work in PROGRESS. Convert a general DESeq2 result object into a data frame.
 }
 \examples{
 

@@ -23,3 +23,6 @@ Nothing, this function writes a file
 \description{
 Save the counts of a DESeq2 object.
 }
+\examples{
+save_counts(dds, name = "Your_comparison_long", out_dir = "/path/to/dir")
+}

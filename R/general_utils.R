@@ -105,3 +105,5 @@ longest_common_prefix <- function(names, uniquify = TRUE, verbose = TRUE) {
     }
     return(new_names)
 }
+
+## Write a function that combines both removal of longest prefix and suffix

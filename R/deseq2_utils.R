@@ -1,4 +1,4 @@
-#' Work in PROGRESS. Convert a general DEseq2 result object into a data frame.
+#' Work in PROGRESS. Convert a general DESeq2 result object into a data frame.
 #'
 #' @param res A DESeq2 object created with `results()` or `lfcShrink()`
 #' @param map_gene_IDs Logical. Do you want to convert ensembl gene IDs to gene names?
@@ -49,7 +49,6 @@ res2df <- function(res, map_gene_IDs = F, histone_PTMs = F, pval_cutoff = 0.05,
                                  padj > pval_cutoff | is.na(padj) ~ "None") ) -> df
   return(df)
 }
-
 
 #' Convert a DESeq2 dds object into a tibble
 #'
@@ -117,7 +116,8 @@ dds2counts <- function(deseq_dataset, tidy = T, counts_are_genes = T, norm_count
 #'
 #' @return A nice ggplot2 density plot
 #' @import ggplot2
-#' @import BiocGenerics
+#' @importFrom BiocGenerics estimateSizeFactors
+#' @importFrom DESeq2 normalizationFactors
 #' @export
 #'
 #' @examples
@@ -136,7 +136,6 @@ show_dds_counts_freq <- function(deseq_dataset, xlim = c(0, 20),
   #   deseq_dataset <- estimateSizeFactors(deseq_dataset, quiet = T)
   # }
 
-  
   dds2counts(deseq_dataset, tidy = T, norm_counts = T) |>
     ggplot(aes(x = log2(Norm_counts + 0.5), y = after_stat(density), fill = Sample)) +
     geom_vline(xintercept = log2(min_counts + 0.5) , linetype = 'solid',
@@ -155,7 +154,6 @@ show_dds_counts_freq <- function(deseq_dataset, xlim = c(0, 20),
           plot.background = element_blank()) -> density_plot
   return(density_plot)
 }
-
 
 #' Filter lowly abundant genes with the possibility of doing a normalisation on the genes to correct for trended biases. 
 #' This function will not estimate size factors of a DESeq2 object, but it will add normalization factors
@@ -263,8 +261,6 @@ filter_dds <- function(deseq_dataset, filt_method = c("sum", "mean", "max"),
   return(deseq_dataset)
 }
 
-
-
 #' Save the counts of a DESeq2 object.
 #'
 #' @param deseq_dataset A dds
@@ -371,6 +367,4 @@ save_df_gsea_list <- function(res, name, map_df, baseMean_thrshold = 300,
                                                       nrow(best_DOWN_genes), '.txt'))
   write_delim(x = best_DOWN_genes, file = out_DOWN_GeneList, append = F, 
               col_names = F, quote = "none", delim = '\t')
-  
 }
-

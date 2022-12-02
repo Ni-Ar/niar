@@ -26,6 +26,9 @@ save_df_gsea_list(
 
 \item{out_dir}{}
 }
+\value{
+Nothing, this function writes to file.
+}
 \description{
 This function is still experimental as it should be broken down into simpler sub-functions
 }
