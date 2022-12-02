@@ -270,7 +270,7 @@ filter_dds <- function(deseq_dataset, filt_method = c("sum", "mean", "max"),
 #' @param ... extra arguments passed to `dds2counts()` function, like `counts_are_genes = T|F` or `norm_counts = T|F`
 #'
 #' @return Nothing, this function writes a file
-#' @import readr
+#' @importFrom readr write_delim
 #' @export
 #'
 #' @examples
@@ -279,9 +279,12 @@ save_counts <- function(deseq_dataset, name, out_dir, tidy = TRUE, ... ) {
   
   counts <- dds2counts(deseq_dataset, tidy = tidy, ...)
   
-  # create output subfolders
-  out_dir_counts <- file.path(out_dir, "gene_counts", format(Sys.Date(), "%Y_%m_%d") )
-  if (!dir.exists(out_dir_counts)) { dir.create(path = out_dir_counts, recursive = T) }
+  # create output sub folders
+  out_dir_counts <- file.path(out_dir, "gene_counts", 
+                              format(Sys.Date(), "%Y_%m_%d") )
+  if (!dir.exists(out_dir_counts)) { 
+    dir.create(path = out_dir_counts, recursive = T)
+    }
   
   num_genes <- length(unique(counts$ensembl_gene_id))
   
@@ -289,10 +292,10 @@ save_counts <- function(deseq_dataset, name, out_dir, tidy = TRUE, ... ) {
     num_samples <- length(unique(counts$Sample))
     suffix <- "long"
   } else if ( tidy == FALSE ) {
-    num_samples <- ncol(counts) - 1 # num of samples - enesembl gene IDs
+    num_samples <- ncol(counts) - 1 # Number of samples - ensembl_gene_IDs
     suffix <- "wide"
   } else {
-    stop('tidy must be a logical!')
+    stop("The parameter 'tidy' must be a logical, either TRUE or FALSE!")
   }
   
   out_tab <- file.path(out_dir_counts, 
