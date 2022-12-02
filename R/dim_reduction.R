@@ -59,7 +59,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
                          show_stats = FALSE, n_loadings = NULL, 
                          return_data = FALSE, real_aspect_ratio = TRUE, ... ) {
   
-  # ----- Check input parameters
+  # ----- Check input parameters ----
   if(missing(mat)){ stop ("Specify a matrix with 'mat = ...'") }
   
   if ( !any(class(mat) %in% "matrix") ) { stop("Input matrix is not a matrix") }
@@ -111,7 +111,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
          "\nMetadata columns: ",  paste(colnames(mt), collapse = " " ))
   }
   
-  # ----- Filter matrix
+  # ----- Filter matrix ----
   if ( filt_mat ) {
     apply(mat, 2, function(x) {
       length(which(is.na(x)))
@@ -119,15 +119,15 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     mat <- mat[, good_cols]
   }
   
-  # ---- Perform Principal Component Analysis
+  # ---- Perform Principal Component Analysis ----
   # calculate the variance for each row
-  row_vars <- matrixStats::rowVars(mat)
+  row_vars <- rowVars(mat)
   
   # select the n_top_var rows by variance
   indx <- order(row_vars, decreasing = TRUE)[seq_len(min(n_top_var, length(row_vars)))]
   
-  # Perform PCA
-  pca_data <- stats::prcomp(x = t( mat[indx, ] ), retx = TRUE, ...)
+  # ---- Run prcomp ---- 
+  pca_data <- prcomp(x = t( mat[indx, ] ), retx = TRUE, ...)
   per100Var <- round( 100*pca_data$sdev^2 / sum(pca_data$sdev^2), 1)
   
   # Check the information content on each component
@@ -142,15 +142,14 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   }
   
   if (show_variance) {
-    ggplot2::qplot(data = as.data.frame(per100Var), geom = "col", 
-                   x = as.numeric(rownames(as.data.frame(per100Var))),
-                   y = per100Var, show.legend = F,
-                   xlab = paste0("Components n = ", length(per100Var) ), 
-                   ylab = "Variance explained (%)") +
-      ggplot2::scale_y_continuous(expand = ggplot2::expansion(add = c(0, NA), 
-                                                              mult = c(0, NA))) +
-      ggplot2::theme_bw() +
-      ggplot2::theme(axis.text = element_text(colour = "black"), 
+    ggplot(data = as.data.frame(per100Var)) +
+      geom_col(aes(x = as.numeric(rownames(as.data.frame(per100Var))),
+                   y = per100Var), show.legend = F) +
+      labs(x = paste0("Components n = ", length(per100Var) ), 
+           y = "Variance explained (%)") +
+      scale_y_continuous(expand = expansion(add = c(0, NA), mult = c(0, NA))) +
+      theme_bw() +
+      theme(axis.text = element_text(colour = "black"), 
             axis.line = element_line(color = 'black'),
             panel.grid.minor = element_blank(),
             panel.grid.major = element_blank(),
@@ -159,7 +158,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
             plot.background = element_blank()) -> p_variance
   }
   
-  # ---- Reshape PCA data
+  # ---- Reshape PCA data ---- 
   num_components <- max(as.numeric(gsub("PC", "", colnames(pca_data$x))))
   
   # Check for low number of components
@@ -181,7 +180,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
   pca_df[, mcol] <- rownames(pca_df)
   rownames(pca_df) <- NULL
   # Add metadata to the rotated data
-  pca_df <- dplyr::left_join(x = pca_df, y = mt, by = mcol) 
+  pca_df <- left_join(x = pca_df, y = mt, by = mcol) 
   
   # Check that mcol for colouring plot is in the metadata
   if( !any(colnames(pca_df) == mcol) ){
@@ -203,8 +202,8 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
       stop("There's something wrong with returning the loadings data...")
     }
   } else {
-    # ---- Plot PCA
-    ggplot2::ggplot(data = pca_df) +
+    # ---- Plot PCA ----
+    ggplot(data = pca_df) +
       aes(x = pca_df[, x], y = pca_df[, y], fill = pca_df[, m_fill] ) +
       geom_point(size = 4, shape = 21, stroke = 0.2, show.legend = F) +
       labs(x = paste0(colnames(pca_df)[x]," Variance: ", per100Var[x], "%"),
@@ -221,7 +220,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     # ---- Plot PCA: add labels to points
     if (m_label != FALSE) {
       p_pca <- p_pca +
-        ggrepel::geom_text_repel(aes(label = pca_df[, m_label] ) )
+        geom_text_repel(aes(label = pca_df[, m_label] ) )
     }
     # ---- Plot PCA: plot with a realistic aspect ratio 
     # https://figshare.com/articles/figure/Aspect_ratio_for_PCA_plots_/8301197/1
@@ -242,7 +241,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
     }
     # p_pca <- p_pca + coord_fixed(clip = "off", ratio = plot_aspect_ratio )     
     
-    # --- Plot PCA Loadings
+    # ---- Plot PCA Loadings ----
     if ( !is.null(n_loadings) ) {
       if (n_loadings > length(pca_data$rotation[, x]) ) {
         warning("Don't ask for more loading to plot than what there ", 
@@ -254,23 +253,23 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
                                   stringsAsFactors = F) 
       pca_loadings$Observations <- rownames(pca_loadings)
       pca_loadings |>
-        dplyr::mutate(Observations = forcats::fct_reorder(Observations, PCx, .desc = T)) |>
+        mutate(Observations = fct_reorder(Observations, PCx, .desc = T)) |>
         # the \(x) is like using the dot "." with the magrittr pipe operator "%>%"
         # it is wrapped in parentheses "(" ")" and it behaves like a function
         # so it must have a "()" at the end
-        dplyr::arrange(desc(PCx) ) |> (\(x) {
+        arrange(desc(PCx) ) |> (\(x) {
           rbind(head(x, n_loadings), tail(x, n_loadings))
         })() -> loadings_data
       
       mid_line <- round(median(loadings_data$PCx), 2)
       
-      ggplot2::ggplot(loadings_data) +
+      ggplot(loadings_data) +
         aes(x = Observations, y = PCx) +
         geom_hline(yintercept = mid_line, linetype = 2, colour = 'grey61') +
         geom_point(col = 'black', size = 1.2) +
         geom_segment(aes(x = Observations, xend = Observations,
                          y = mid_line, yend = PCx) ) +
-        scale_y_continuous(labels = scales::number_format(accuracy = 0.001)) +
+        scale_y_continuous(labels = number_format(accuracy = 0.001)) +
         coord_cartesian(clip = "off") +
         labs(title = paste("Loadings on principal component", x), x = "",
              y = "Loadings eigenvectors")+
@@ -284,21 +283,21 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
               panel.border = element_blank(),
               plot.background = element_blank()) -> p_loadings
     }
-    # --- Plot Summary Statistics
+    # --- Plot Summary Statistics ----
     if ( show_stats ) {
       # Suppress summarise info
       options(dplyr.summarise.inform = FALSE)
       as.data.frame(mat) |>
-        tidyr::pivot_longer(cols = everything()) |>
-        dplyr::group_by(name) |>
-        dplyr::summarise(Minimum = min(value), 
+        pivot_longer(cols = everything()) |>
+        group_by(name) |>
+        summarise(Minimum = min(value), 
                          Median = median(value),
                          Mean = mean(value), 
                          Maximum = max(value),
                          StDev = sd(value)) |>
-        tidyr::pivot_longer( cols = !matches("name"), 
+        pivot_longer( cols = !matches("name"), 
                              names_to = "summary_stats") |>
-        ggplot2::ggplot(aes(y = summary_stats, x = value, fill = summary_stats)) +
+        ggplot(aes(y = summary_stats, x = value, fill = summary_stats)) +
         geom_boxplot(show.legend = F) + 
         scale_x_log10() +
         labs(y = "Stats of columns in mat") +
@@ -310,7 +309,7 @@ showme_PCA2D <- function(mat, x = 1, y = x + 1, mt, mcol,
               panel.background = element_blank(),
               plot.background = element_blank()) -> p_stats
     }
-    # --- Decide what plots to return
+    # --- Decide what plots to return ----
     if ( all( show_variance & show_stats ) ) {
       (p_variance + p_stats ) / p_pca
     } else if ( show_variance ) {
