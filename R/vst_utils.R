@@ -626,16 +626,31 @@ get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL,
                                        metadata_path = NULL,
                                        ensembl_gene_id, vst_id, 
                                        filter_tbl = TRUE) {
-    
-    # Check params 
-    if ( missing(ensembl_gene_id) ) { stop("You didn't specified an ENSEMBL gene ID!") } 
-    if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
-    if ( !is.logical(filter_tbl) ) { stop("filter_tbl must be TRUE or FALSE")}
-    
+  # Check params 
+  if ( missing(ensembl_gene_id) ) { stop("You didn't specified an ENSEMBL gene ID!") } 
+  if ( missing(vst_id) ) { stop("You didn't specified a vst_id!") } 
+  if ( !is.logical(filter_tbl) ) { stop("filter_tbl must be TRUE or FALSE")}
+  
+  # check if CRG cluster is mounted 
+  if ( dir.exists('~/mnt/narecco/projects/07_Suz12AS/data' ) )  {
+    mounted <- TRUE
+  } else if ( dir.exists('/users/mirimia/narecco/projects/07_Suz12AS/data') ) {
+    mounted <- FALSE
+  } else {
+    stop("Can't figure out if the CRG cluster is mounted")
+  }
+  
+  if ( mounted == TRUE) {
+    data_dir <- file.path('~/mnt/narecco/projects/07_Suz12AS/data')
+  } else if ( mounted == FALSE ) {
     data_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/data')
-    vast_out <- file.path(data_dir, 'INCLUSION_tbl/Mouse_Development/vast_tools/vast_out')
+  } else {
+    stop("Can't specify the data dir")
+  }
+
+  vast_out <- file.path(data_dir, 'INCLUSION_tbl/Mouse_Development/vast_tools/vast_out')
     
-    if (is.null(inclusion_tbl) ) {
+    if ( is.null(inclusion_tbl) ) {
         inclusion_tbl <- file.path(vast_out, "INCLUSION_LEVELS_FULL-mm10-469-v251.tab")
     }
     

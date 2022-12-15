@@ -34,7 +34,7 @@ plot_hist_dPSI <- function(data, by_complex = FALSE) {
         scale_fill_manual(values = c("TRUE" = "firebrick3", "FALSE" = "dodgerblue3")) +
         labs(x = "\u0394PSI") +
         theme_classic() +
-        theme(panel.grid.major = element_line(colour = 'gray84', size = 0.1),
+        theme(panel.grid.major = element_line(colour = 'gray84', linewidth = 0.1),
               axis.text = element_text(colour = 'black'), 
               strip.background = element_blank()) -> p_dPSI
     
@@ -91,7 +91,7 @@ plot_samples_PSI <- function(data, simplify_names = TRUE) {
               axis.text.x = element_text(angle = 45, hjust = 1),
               axis.title = element_blank(),
               strip.background = element_blank(),
-              panel.grid.major = element_line(colour = 'gray84', size = 0.15),
+              panel.grid.major = element_line(colour = 'gray84', linewidth = 0.15),
               legend.position = "left") -> p_PSI
     
     return(p_PSI)
@@ -220,7 +220,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
           plot.subtitle = element_text(colour = "black"),
           
           panel.background = element_blank(),
-          panel.grid.major.y = element_line(colour = 'grey73', size = 0.5),
+          panel.grid.major.y = element_line(colour = 'grey73', linewidth = 0.5),
           
           axis.text = element_text(colour = "black"),
           axis.title = element_text(colour = "black"),
@@ -493,7 +493,10 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
 #'          plot_mouse_tissue_devel(legend = "outside", save_plot = T)
 plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside', 'outside'), 
                                     save_plot = FALSE, plot_name = NULL, 
-                                    out_plot_dir = NULL, width = 7, height = 7) {
+                                    out_plot_dir = NULL, width = 7, height = 7,
+                                    colour_bar = c('BlueRed', 'viridis'), 
+                                    PSI_limits = c(0, 100),
+                                    blck_wht_PSI_col_thshld = 70 ) {
 
     # Check params 
     if ( missing(data_tbl) ) { 
@@ -503,172 +506,207 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
     if( is.null(title) ) {
         title <- unique(paste0(data_tbl$GENE, " ~ ", data_tbl$EVENT))
     }
-    
-    ggplot(data_tbl) +
-        aes(x = Stage, y = Tissue, fill = mean_PSI, size = log2(mean_Gene_Expr + 1) ) +
-        geom_point(shape = 21, stroke = 0.2) +
-        geom_text(aes(label = round(mean_PSI, 0)), size = 1.75, family = "Arial") + 
-        scale_size(range = c(2, 6), breaks = c(1:10), name = 'log2(TPMs)') +
-        scale_x_discrete(expand = expansion(mult = 0.05, add = 0.1) ) +
-        coord_cartesian(clip = 'off') +
-        labs(title = title ) +
-        theme_classic(base_family = "Arial") +
-        theme(axis.text = element_text(colour = 'black', size = 5),
-              axis.text.x = element_text(margin = margin(t = 0, unit = "mm")),
-              axis.text.y = element_text(hjust = 1, margin = margin(r = 0, unit = "mm")),
-              axis.title = element_blank(),
-              axis.ticks.x = element_blank(),
-              axis.ticks.y = element_line(size = 0.25, colour = "black"),
-              axis.ticks.length.y = unit(x = 1, units = "mm"),
-              axis.line = element_line(size = 0.25, colour = "black"),
-              plot.title = element_text(size = 5, vjust = 0, hjust = 0.05, margin = margin(b = -1, unit = "mm")),
-              plot.background = element_blank(),
-              panel.background = element_blank(),
-              panel.grid.major.y = element_line(colour = "gray84", size = 0.2) ) -> core_plot
-    
-    if (legend == 'inside') {
-        core_plot +
-            scale_fill_gradientn(colours = met.brewer("Hiroshige", 9, direction = -1),
-                                 breaks = c(0, 25, 50, 75, 100), name = "Mean PSI", 
-                                 limits = c(0, 100), na.value = "gray84",
-                                 labels = c("0\nSkipping", 25, 50, 75, "100\nInclusion") ) +
-            guides(
-                fill = guide_colourbar(
-                    barwidth = unit(16, units = "mm"),
-                    barheight = unit(1, units = "mm"),
-                    title.position = "top",
-                    title.hjust = 0,
-                    title.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5,
-                        vjust = 0,
-                        margin = margin(t = -1, b = -0.5, unit = "mm")
-                    ),
-                    label.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5,
-                        margin = margin(t = 0, unit = "mm")
-                    )
-                ),
-                size = guide_legend(
-                    reverse = F,
-                    override.aes = list(fill = "gray84"),
-                    keyheight = grid::unit(1, 'mm'),
-                    keywidth = grid::unit(1, 'mm'),
-                    nrow = 1,
-                    title.vjust = 0.55,
-                    title.position = "top",
-                    title.hjust = 0,
-                    title.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5,
-                        vjust = 0,
-                        margin = margin(t = -1, b = -1.5, unit = "mm")
-                    ),
-                    label.position = "bottom",
-                    label.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5,
-                        hjust = 0.5,
-                        vjust = 0,
-                        margin = margin(t = -2, unit = "mm")
-                    )
-                )
-            )  +
-    theme(legend.position = c(0.225, 0.80),
-          legend.direction = "horizontal",
-          legend.title = element_text(size = 5),
-          legend.text = element_text(size = 5),
-          legend.background = element_rect(colour = "white"),
-          legend.margin = margin(t = -1, b = -1, l = 0, r = -1, unit = "mm"),
-          legend.box.spacing = grid::unit(0, 'mm'),
-          legend.key = element_blank() ) -> final_plot
-        
-    } else if ( legend == "outside") {
-        core_plot +
-            scale_fill_gradientn(colors = met.brewer("Hiroshige", 9, direction = -1),
-                                 breaks = c(0, 25, 50, 75, 100), name = "Mean PSI", 
-                                 limits = c(0, 100), na.value = "gray84",
-                                 labels = c("0 (Skipping)", 25, 50, 75, "100 (Inclusion)") ) +
-            guides(
-                fill = guide_colourbar(
-                    barheight = unit(25, units = "mm"),
-                    barwidth = unit(1, units = "mm"),
-                    title.position = "top",
-                    title.hjust = 0,
-                    title.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5),
-                    label.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5) ),
-                size = guide_legend(
-                    override.aes = list(fill = "gray90"),
-                    keyheight = grid::unit(1, 'mm'),
-                    keywidth = grid::unit(1, 'mm'),
-                    title.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5 ),
-                    label.theme = element_text(
-                        family = "Arial",
-                        colour = "black",
-                        size = 5
-                    )
-                )
-            )  +
-            theme(legend.title = element_text(size = 5),
-                  legend.text = element_text(size = 5),
-                  legend.background = element_blank(),
-                  legend.margin = margin(t = -1, b = -1, l = 2, r = -1, unit = "mm"),
-                  legend.box = "vertical",
-                  legend.box.spacing = grid::unit(0, 'mm'),
-                  legend.box.background = element_blank(),
-                  legend.key = element_blank() ) -> final_plot
-        
-        width <- width + 0.5
-        
-    } else{
-        stop("The parameter 'legend' must specify the position of the legend relative to the plot.")
-    }
+  
+  PSI_min <- PSI_limits[1]
+  PSI_max <- PSI_limits[2]
+  
+  # this should be tested more and improved or removed as it might be an overcomplication
+  if ( legend == 'inside' ) {
+    if( PSI_min == 0 ) { zero_label <- "0\nSkipping" }
+    if( PSI_max == 100 ) { hundred_label <- "100\nInclusion" }
+  } else if ( legend == 'outside' ) {
+    if( PSI_min == 0 ) { zero_label <- 0 }
+    if( PSI_max == 100 ) { hundred_label <- 100 }
+  }
+  
+  # Create a rich colourbar for the PSI
+  num_breaks_colour_bar <- 5
+  my_breaks <- round(seq(from = PSI_min, to = PSI_max, length.out = num_breaks_colour_bar), 0)
+  my_labels <- as.character(my_breaks)
+  
+  if ( my_breaks[1] == 0) { my_labels[1] <- zero_label }
+  if ( my_breaks[length(my_breaks)] == 100) { my_labels[length(my_labels)] <- hundred_label }
+  
+  # change PSI colour
+  data_tbl <- data_tbl |>
+  mutate(txt_colour = case_when(mean_PSI >= blck_wht_PSI_col_thshld ~ "above_white",
+                                mean_PSI < blck_wht_PSI_col_thshld ~ "below_black")) 
 
-    if ( is.null(plot_name) ) {
-        plot_name <- paste0("Mouse_Devel_", unique(data_tbl$GENE), "_Expr_", 
-                            unique(data_tbl$EVENT), "_PSI_", 
-                            width, "x", height, "cm.pdf" ) 
-    }
-    ## This needs to be double checked... what was I doing here? Why 2 ifs for save_plot?
-    if (save_plot) {
-        if( is.null (out_plot_dir) ) { 
-            anal_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/analysis')
-            out_plot_dir <- file.path(anal_dir, 'tools_output/ENCODE_Mouse_Development', 
-                                      format(Sys.Date(), "%Y_%m_%d"))
-        }
-    }
+  ggplot(data_tbl) +
+      aes(x = Stage, y = Tissue, fill = mean_PSI, size = log2(mean_Gene_Expr + 1) ) +
+      geom_point(shape = 21, stroke = 0.2) +
+      geom_text(aes(label = round(mean_PSI, 0), color = txt_colour), size = 1.75, family = "Arial") + 
+      scale_size(range = c(2, 6), breaks = c(1:10), name = 'log2(TPMs)') +
+      scale_x_discrete(expand = expansion(mult = 0.05, add = 0.1) ) +
+      scale_colour_manual(values = c("below_black" = "black", "above_white" = "white"), guide = 'none') +
+      coord_cartesian(clip = 'off') +
+      labs(title = title ) +
+      theme_classic(base_family = "Arial") +
+      theme(axis.text = element_text(colour = 'black', size = 5),
+            axis.text.x = element_text(margin = margin(t = 0, unit = "mm")),
+            axis.text.y = element_text(hjust = 1, margin = margin(r = 0, unit = "mm")),
+            axis.title = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.ticks.y = element_line(linewidth = 0.25, colour = "black"),
+            axis.ticks.length.y = unit(x = 1, units = "mm"),
+            axis.line = element_line(linewidth = 0.25, colour = "black"),
+            plot.title = element_text(linewidth = 5, vjust = 0, hjust = 0.05, margin = margin(b = -1, unit = "mm")),
+            plot.background = element_blank(),
+            panel.background = element_blank(),
+            panel.grid.major.y = element_line(colour = "gray84", linewidth = 0.2) ) -> core_plot
+    
+  if ( colour_bar == 'BlueRed' ) {
+    core_plot <- core_plot +
+      scale_fill_gradientn(colours = met.brewer("Hiroshige", 9, direction = -1),
+                           breaks = my_breaks, name = "Mean PSI", 
+                           limits = c(PSI_min, PSI_max), na.value = "gray84",
+                           labels = my_labels )
+  } else if ( colour_bar == 'viridis') {
+    library(viridis)
+    core_plot <- core_plot +
+      scale_fill_continuous(type = "viridis", direction = -1,
+                            limits = c(PSI_min, PSI_max),
+                            breaks = my_breaks, na.value = "gray84",
+                            name = "Mean PSI", labels = my_labels)
+  } else {
+    stop("The parameter 'colour_bar' must be either: 'BlueRed' or 'viridis'")
+  }
+  
+  if (legend == 'inside') {
+      core_plot +
+          guides(
+              fill = guide_colourbar(
+                  barwidth = unit(16, units = "mm"),
+                  barheight = unit(1, units = "mm"),
+                  title.position = "top",
+                  title.hjust = 0,
+                  title.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5,
+                      vjust = 0,
+                      margin = margin(t = -1, b = -0.5, unit = "mm")
+                  ),
+                  label.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5,
+                      margin = margin(t = 0, unit = "mm")
+                  )
+              ),
+              size = guide_legend(
+                  reverse = F,
+                  override.aes = list(fill = "gray84"),
+                  keyheight = grid::unit(1, 'mm'),
+                  keywidth = grid::unit(1, 'mm'),
+                  nrow = 1,
+                  title.vjust = 0.55,
+                  title.position = "top",
+                  title.hjust = 0,
+                  title.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5,
+                      vjust = 0,
+                      margin = margin(t = -1, b = -1.5, unit = "mm")
+                  ),
+                  label.position = "bottom",
+                  label.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5,
+                      hjust = 0.5,
+                      vjust = 0,
+                      margin = margin(t = -2, unit = "mm")
+                  )
+              )
+          )  +
+  theme(legend.position = c(0.225, 0.80),
+        legend.direction = "horizontal",
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.background = element_rect(colour = "white"),
+        legend.margin = margin(t = -1, b = -1, l = 0, r = -1, unit = "mm"),
+        legend.box.spacing = grid::unit(0, 'mm'),
+        legend.key = element_blank() ) -> final_plot
+      
+  } else if ( legend == "outside") {
+      core_plot +
+          guides(
+              fill = guide_colourbar(
+                  barheight = unit(25, units = "mm"),
+                  barwidth = unit(1, units = "mm"),
+                  title.position = "top",
+                  title.hjust = 0,
+                  title.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5),
+                  label.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5) ),
+              size = guide_legend(
+                  override.aes = list(fill = "gray90"),
+                  keyheight = grid::unit(1, 'mm'),
+                  keywidth = grid::unit(1, 'mm'),
+                  title.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5 ),
+                  label.theme = element_text(
+                      family = "Arial",
+                      colour = "black",
+                      size = 5
+                  )
+              )
+          )  +
+          theme(legend.title = element_text(size = 5),
+                legend.text = element_text(size = 5),
+                legend.background = element_blank(),
+                legend.margin = margin(t = -1, b = -1, l = 2, r = -1, unit = "mm"),
+                legend.box = "vertical",
+                legend.box.spacing = grid::unit(0, 'mm'),
+                legend.box.background = element_blank(),
+                legend.key = element_blank() ) -> final_plot
+      
+      width <- width + 0.5
+      
+  } else{
+      stop("The parameter 'legend' must specify the position of the legend relative to the plot.")
+  }
 
-    if ( save_plot == TRUE ) {
-        # If output plot dir doesn't exists create it.
-        if (!dir.exists(out_plot_dir)) { dir.create(out_plot_dir, recursive = T) }
-        # Warn if file already exists
-        if ( file.exists(file.path(out_plot_dir, plot_name) ) ) {
-            warning("The output plot already exists, I'm gonna overwrite it!")
-        }
-        
-        ggsave(filename = plot_name, plot = final_plot, device = cairo_pdf, 
-               path = out_plot_dir, units = "cm", width = width, height = height)
-        
-    } else if ( save_plot == FALSE ) {
-        return(final_plot)
-        
-    } else {
-        stop("The parameter `save_plot` must be logical, either TRUE or FALSE!")
-    }
+  if ( is.null(plot_name) ) {
+      plot_name <- paste0("Mouse_Devel_", unique(data_tbl$GENE), "_Expr_", 
+                          unique(data_tbl$EVENT), "_PSI_", 
+                          width, "x", height, "cm.pdf" ) 
+  }
+  ## This needs to be double checked... what was I doing here? Why 2 ifs for save_plot?
+  if (save_plot) {
+      if( is.null (out_plot_dir) ) { 
+          anal_dir <- file.path('/users/mirimia/narecco/projects/07_Suz12AS/analysis')
+          out_plot_dir <- file.path(anal_dir, 'tools_output/ENCODE_Mouse_Development', 
+                                    format(Sys.Date(), "%Y_%m_%d"))
+      }
+  }
+
+  if ( save_plot == TRUE ) {
+      # If output plot dir doesn't exists create it.
+      if (!dir.exists(out_plot_dir)) { dir.create(out_plot_dir, recursive = T) }
+      # Warn if file already exists
+      if ( file.exists(file.path(out_plot_dir, plot_name) ) ) {
+          warning("The output plot already exists, I'm gonna overwrite it!")
+      }
+      
+      ggsave(filename = plot_name, plot = final_plot, device = cairo_pdf, 
+             path = out_plot_dir, units = "cm", width = width, height = height)
+      
+  } else if ( save_plot == FALSE ) {
+      return(final_plot)
+      
+  } else {
+      stop("The parameter `save_plot` must be logical, either TRUE or FALSE!")
+  }
        
 }
 
@@ -704,7 +742,7 @@ plot_corr_dist <- function(data, binwidth = 0.05 ){
                         "against ", num_genes, " genes") ) +
     theme_bw(base_size = 8, base_family = "Arial") +
     theme(axis.text = element_text(colour = "black"),
-          axis.line = element_line(size = 0.5),
+          axis.line = element_line(linewidth = 0.5),
           panel.grid.minor = element_blank(),
           panel.border = element_blank(),
           plot.background = element_blank())
@@ -782,7 +820,7 @@ plot_best_corr_genes <- function(data, num_genes, ...) {
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank(),
           axis.text.x = element_text(colour = "black"),
-          axis.line = element_line(size = 0.5),
+          axis.line = element_line(linewidth = 0.5),
           panel.grid.minor = element_blank(),
           panel.grid.major.y = element_blank(),
           panel.border = element_blank(),
