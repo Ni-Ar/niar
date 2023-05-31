@@ -54,8 +54,7 @@ A ggplot2 plot or a tibble.
 The order of the genes in the lower triangle heatmap are defined as the input order of \code{gene_ids}.
 }
 \examples{
-]
-#' # Create a gene ID mapping object.
+# Create a gene ID mapping object.
 ensembl <- gimme_mart()
 
 # Map SRSF1-12 gene names to ENSEMBL GENE IDs.

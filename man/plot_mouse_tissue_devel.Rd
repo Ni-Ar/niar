@@ -12,7 +12,10 @@ plot_mouse_tissue_devel(
   plot_name = NULL,
   out_plot_dir = NULL,
   width = 7,
-  height = 7
+  height = 7,
+  colour_bar = c("BlueRed", "viridis"),
+  PSI_limits = c(0, 100),
+  blck_wht_PSI_col_thshld = 70
 )
 }
 \arguments{
@@ -31,6 +34,12 @@ plot_mouse_tissue_devel(
 \item{width}{Width of the plot in cm (numeric). Defaults are already very good.}
 
 \item{height}{Height of the plot in cm (numeric). Defaults are already very good.}
+
+\item{colour_bar}{Colour palette to represent the PSI values. Select between \code{BlueRed} or \code{viridis}.}
+
+\item{PSI_limits}{A vector of length 2, specifying the minimum and maximum PSI colour limits in the legend.}
+
+\item{blck_wht_PSI_col_thshld}{The PSI text is shown in black, PSI values above this threshold will be displayed in white instead. Gives better contrast with dark colours of high PSI.}
 }
 \value{
 A ggplot2 plot or a pdf.
