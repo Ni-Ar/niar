@@ -8,10 +8,11 @@ Description: This is a collection of functions I've written to analyse data in R
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 URL: https://github.com/Ni-Ar/niar
 BugReports: https://github.com/Ni-Ar/niar/issues/
 Depends: R (>= 4.1.0)
+biocViews:
 Imports:
 	matrixStats (>= 0.6.1),
 	ggplot2 (>= 3.4.0),
@@ -31,6 +32,8 @@ Imports:
 	csaw (>= 1.28.0),
 	MetBrewer (>= 0.2.0),
 	Cairo (>= 1.6-0),
+	ggseqlogo (>= 0.1),
+	seqinr (>= 4.2-23),
 Suggests: 
     rmarkdown,
     knitr,
