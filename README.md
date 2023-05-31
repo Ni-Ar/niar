@@ -1,6 +1,6 @@
-# My personal `R` package
+# Nice Interactive Analysis in `R` package
 
-Here I collect many `R` functions that I’ve created over time. The primary purpose of this package is to neatly organise my R functions in one place and have them ready to use whenever. So this means that the code could be subject to frequent changes and is "always" in development. Feedback is welcome!
+Here I collect many `R` functions that I’ve created over time. The primary purpose of this package is to neatly organise my R code in one place and have it ready to use whenever. Plus this forces me to document my functions and it's easier to share the analysis code. The code could be subject to frequent changes and is "always" in development. Feedback is welcome!
 If you find an error please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new).
 
 ## Requirements
@@ -29,7 +29,7 @@ For this step to work properly you must make sure that all the required dependen
 ```R
 install.packages(c('devtools', 'matrixStats', 'BiocManager', 'XICOR', 
                    'ggplot2', 'ggrepel', 'scales', 'patchwork',
-                   'MetBrewer', 'ggalluvial', 'ggfittext'
+                   'MetBrewer', 'ggalluvial', 'ggfittext', 'ggseqlogo', 'seqinr',
                    'dplyr', 'tidyr', 'tibble', 'forcats', 'stringr'))
 install.packages('Cairo') 
 # if you get an error installing 'Cairo' you might need to first install the cairographics C library your operating system from https://www.cairographics.org/download/
@@ -37,6 +37,7 @@ install.packages('Cairo')
 
 and the following Bioconductor packages:
 ```R
+BiocManager::install("csaw")
 BiocManager::install("Biostrings")
 BiocManager::install("biomaRt")
 BiocManager::install("DESeq2")
@@ -56,7 +57,7 @@ In grDevices:::png("/tmp/Rtmp....",  :
 
 To solve this go to: Tools Menu (on top of the windos) > Global Options > General section > Graphics tab > and in the Graphic Device Backend drop down menu select `Cairo` and then click “Apply”. Now the plots should be correctly displayed.
 
-## Quick Start
+## Overview
 
 Currently this package contains:
 - one function to perform Principal Component Analysis (PCA) in 2D with lots of option to enrich visualisation and exploration. See the [vignette](#Vignettes) below for more details.
@@ -64,6 +65,8 @@ Currently this package contains:
 - Some publically available datasets have been packaged in *ad-hoc* funtions to quick plot and explore the data:
 	- [Mouse Development ENCODE](https://www.encodeproject.org/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus) data `plot_mouse_tissue_devel()` which uses data I preprocessed  fetched with `get_mouse_tissue_devel_tbl()`. Currently works only on the  [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/).
 - Some [Biomart](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) handy functions for quick gene IDs conversions (e.g. `ensembl_id_2_gene_name()`).
+- Some DESeq2 wrappers. 
+- Multiple sequence analysis from fasta format to generate PWMs, visualise logos or Jensen-Shannon divergence.
 
 More examples grouped by topic are listed below:
 
@@ -84,7 +87,7 @@ The underlying function is `prcomp` and you can pass extra arguments with `...` 
 showme_PCA2D(mat, scale. = T, center = F)
 ```
 
-Extra info can be added from a dataframe  ( `mt`) which serves as a metadata. To specify which column of the dataframe contains the `colnames` of the matrix `mat` use `mcol`. In the following example the `mt` contains a column called `sample_name`:
+Extra info can be passed from a metadata dataframe with  `mt =`. To specify which column of the dataframe contains the `colnames` of the matrix `mat` use `mcol`. In the following example the `mt` contains a column called `sample_name`:
 ```R
 showme_PCA2D(mat = mat, mt = mt, mcol = "sample_name", show_variance = T, show_stats = T)
 ```
@@ -116,3 +119,4 @@ These functions are basically “hacks” that call the system `grep` command, w
 - [ ] Make vignette for `biomaRt` functions 
 - [ ] Make vignette for vast-tools utility and plotting functions, especially correlations. 
 - [ ] Maybe add the mouse ENCODE data (fetched with `get_mouse_tissue_devel_tbl`) to the package?
+- [ ] Make vignette for logo analysis
