@@ -371,3 +371,52 @@ save_df_gsea_list <- function(res, name, map_df, baseMean_thrshold = 300,
   write_delim(x = best_DOWN_genes, file = out_DOWN_GeneList, append = F, 
               col_names = F, quote = "none", delim = '\t')
 }
+
+
+
+
+# quick plotting function
+showme_MA <- function(res, filt_around_zero = 0.1, signif_threshold = 0.05,
+                      y_min = -3, y_max = 3) {
+  
+  # get info from the res with:
+  # res_info <- as.data.frame(attributes(res_KO)$elementMetadata)
+  # pval_test <- res_info[4, "description"]
+  
+  # y_min and y_max should be either a vector or length 1 or 2, called y_lims
+  #  if missing(filt_around_zero) it should be calculated relative to y_lims
+  df <- res2df(res, pval_cutoff = signif_threshold)
+  
+  up_reg_n <- nrow(subset(df, Direction == "UP"))
+  do_reg_n <- nrow(subset(df, Direction == "DOWN"))
+  
+  df <- subset(df, !between(log2FoldChange, left = -filt_around_zero, right = filt_around_zero))
+  ggplot(df) +
+    aes(x = baseMean, y = log2FoldChange, fill = Direction) +
+    geom_hline(yintercept = 0, linetype = "solid", colour = "black", linewidth = 0.5) +
+    geom_point(shape = 21, show.legend = F, size = 0.75, stroke = 0.1) +
+    annotate("label", x = max(df$baseMean), y = y_max-0.3, hjust = 1,
+             label = paste0(up_reg_n, " genes"), fill = "firebrick1", 
+             size = 2.5, label.padding = unit(0.1, "lines"),
+             label.size = 0.15 ) +
+    annotate("label", x = max(df$baseMean), y = y_min+0.75, hjust = 1,
+             label = paste0(do_reg_n, " genes"), fill = "dodgerblue1", 
+             size = 2.5, label.padding = unit(0.1, "lines"),
+             label.size = 0.15 ) +
+    coord_cartesian(ylim = c(y_min, y_max), clip = 'off') +
+    scale_x_continuous(trans = "log10", expand = expansion(add = c(0.02, 0), mult = c(0,0.01) ),
+                       n.breaks =  8, labels = scales::scientific ) +
+    scale_y_continuous(expand = expansion(add = 0.05, mult = 0), n.breaks = 8,
+                       oob = scales::oob_squish, limits = c(y_min, y_max) ) +
+    scale_fill_manual(values = c("UP" = "firebrick2", "DOWN" = "dodgerblue", "NONE" = "gray84")) +
+    annotation_logticks(base = 10, sides = "b", size = 0.2) +
+    labs(x = "Mean normalised counts", y = "log2 Fold Change") +
+    theme_classic(base_size = 6, base_family = "Arial") +
+    theme(axis.text = element_text(colour = "black", family = "Arial"),
+          axis.title = element_text(colour = "black", family = "Arial"),
+          axis.ticks.x = element_blank(),
+          panel.grid.major = element_line(colour = "gray84", linewidth = 0.1),
+          panel.background = element_blank(),
+          plot.background = element_blank())
+}
+
