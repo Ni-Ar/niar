@@ -184,8 +184,8 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   data_required_cols <- c("Quality_Score_Value", "Gene_Expr", "PSI", "GENE", "Sample" )
   if ( !all(data_required_cols %in% colnames(data) ) ) {
     
-    missing_col <- which( ! data_required_cols %in% colnames(data_required_cols) )
-    message("Input dataframe is missing the required columns: ", 
+    missing_col <- which( ! data_required_cols %in% colnames(data) )
+    stop("Input dataframe is missing the required columns: ", 
             paste0(data_required_cols[missing_col], collapse = " ") )
   }
   
@@ -480,6 +480,9 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
 #' @param out_plot_dir Path specifying where to save the plot. By default (`NULL`) is dated subfolder.
 #' @param width Width of the plot in cm (numeric). Defaults are already very good.
 #' @param height Height of the plot in cm (numeric). Defaults are already very good.
+#' @param colour_bar Colour palette to represent the PSI values. Select between `BlueRed` or `viridis`.
+#' @param PSI_limits A vector of length 2, specifying the minimum and maximum PSI colour limits in the legend.
+#' @param blck_wht_PSI_col_thshld The PSI text is shown in black, PSI values above this threshold will be displayed in white instead. Gives better contrast with dark colours of high PSI.
 #'
 #' @return A ggplot2 plot or a pdf.
 #' @import ggplot2 
@@ -550,7 +553,7 @@ plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside',
             axis.ticks.y = element_line(linewidth = 0.25, colour = "black"),
             axis.ticks.length.y = unit(x = 1, units = "mm"),
             axis.line = element_line(linewidth = 0.25, colour = "black"),
-            plot.title = element_text(linewidth = 5, vjust = 0, hjust = 0.05, margin = margin(b = -1, unit = "mm")),
+            plot.title = element_text(size = 5, vjust = 0, hjust = 0.05, margin = margin(b = -1, unit = "mm")),
             plot.background = element_blank(),
             panel.background = element_blank(),
             panel.grid.major.y = element_line(colour = "gray84", linewidth = 0.2) ) -> core_plot
@@ -846,13 +849,13 @@ plot_best_corr_genes <- function(data, num_genes, ...) {
 #' @return A ggplot2 plot or a tibble.
 #' @import tibble
 #' @import dplyr
-#' @importFrom  forcats fct_inorder
+#' @importFrom forcats fct_inorder
 #' @import ggplot2
 #' @export
 #' @description The order of the genes in the lower triangle heatmap are defined as the input order of `gene_ids`.
 #'
-#' @examples]
-#' #' # Create a gene ID mapping object.
+#' @examples
+#' # Create a gene ID mapping object.
 #' ensembl <- gimme_mart()
 #' 
 #' # Map SRSF1-12 gene names to ENSEMBL GENE IDs.
