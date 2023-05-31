@@ -37,10 +37,11 @@ install.packages('Cairo')
 
 and the following Bioconductor packages:
 ```R
-BiocManager::install("csaw")
 BiocManager::install("Biostrings")
 BiocManager::install("biomaRt")
 BiocManager::install("DESeq2")
+BiocManager::install("csaw")
+BiocManager::install("msa")
 ```
 
 If you get an error with this method it’s probably cause by the fact that the dependencies are already in the `.libPaths()`. Remember that once you log out of your `R` session the `niar` functions won’t be availbale anymore and you’ll need to load them again next time. 
