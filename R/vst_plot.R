@@ -263,7 +263,7 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
   # Chatterjee ( http://arxiv.org/abs/1909.10140 )
   # Remember this is not symmetric 
   expr_psi_chttrj <- calculateXI(xvec = data$Gene_Expr, yvec = data$PSI, 
-                                 simple = T, seed = 16)
+                                 simple = T) #, seed = 16)
   expr_psi_chttrj <- round(expr_psi_chttrj, 3)
   
   if ( verbose ) {
@@ -882,10 +882,10 @@ plot_corr_heatmap <- function(inclusion_tbl, vst_id, quality_thrshld,
   if ( missing(gene_ids) ) { stop("You didn't specified a vector of ENSEMBL gene IDs!") } 
   if( length(gene_ids) < 3 ) { stop("Please provide at least 3 ENSEMBL gene IDs") }
   
-  if ( ! grepl(pattern = "^ENS", x = gene_ids[1] ) ) {
-    stop("Are you sure that the first element of 'gene_ids' is a valid ENSEMBL",
-         "gene ID?")
-  }
+  # if ( ! grepl(pattern = "^ENS", x = gene_ids[1] ) ) {
+  #   stop("Are you sure that the first element of 'gene_ids' is a valid ENSEMBL",
+  #        "gene ID?")
+  # }
   
   if ( missing(corr_method) ) { 
     stop("You didn't specified an correlation method!",
