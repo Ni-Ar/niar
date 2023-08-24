@@ -247,7 +247,7 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
   return( vst_expression_tbl )
 }
 
-#' Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
+#' Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. 
 #'
 #' @param vst_psi_tbl A dataframe generated with `grep_psi()` from a vast-tools inclusion table.
 #' @param num_id_cols How many first num_id_cols to consider as info/metadata/IDs of the AS event ID in the table.
@@ -258,6 +258,10 @@ grep_gene_expression <-  function(vst_expression_tbl, ensembl_gene_id,
 #' @param verbose Print out information
 #' @param add_ID_col Logical. Do you want to add an extra `col_ID_name` to the output data.frame? Default `FALSE`.
 #' @param col_ID_name Extra column that could be used to add a new identifier to the data. Default is "banana".
+#'
+#' @description This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
+#'
+#' @details This function works well in conjunction with `grep_psi()` function.
 #'
 #' @return A reshaped `data.frame` in long format as `tibble`.
 #' @import dplyr
@@ -419,7 +423,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
     stop("Something went wrong in reshaping the data around check point 2")
   }
   
-  # Coerc factors col to character col
+  # Coerce factors col to character col
   lng_vst_psi_tbl <- mutate_if(lng_vst_psi_tbl, is.factor, as.character)
   
   # Merge datasets
@@ -474,7 +478,7 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
       cols_to_return <- c(cols_to_return, "dPSI")
     }
     select(tidy_vst_psi_tbl, cols_to_return) |>
-      unique() ->  tidy_vst_psi_tbl
+      unique() -> tidy_vst_psi_tbl
   } else {
     stop("return_quality_scores must me a logical (TRUE or FALSE)!")
   }
@@ -483,6 +487,13 @@ tidy_vst_psi <- function(vst_psi_tbl, num_id_cols = 6, num_of_Score_Types = 5,
   if ( add_ID_col == TRUE ) {
     tidy_vst_psi_tbl$Group_Name <- col_ID_name
   }
+  
+  # Coerce the AS event type 
+  tidy_vst_psi_tbl <- mutate(.data = tidy_vst_psi_tbl,
+                             COMPLEX = factor(COMPLEX,
+                                              levels = c('S', 'C1', 'C2', 'C3',
+                                                         'MIC', 'ANN', 'Alt3',
+                                                         'Alt5', 'IR') ) )
   return(tidy_vst_psi_tbl)
 }
 
@@ -975,4 +986,53 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
     }
   }
   return(genes_corr_df)
+}
+
+#' Create a bed file from events in a vast-tools inclusion table 
+#'
+#' @param path path to vast-tools inclusion file.
+#' @param header does the file have a header? If `FALSE` consider first row as an event
+#' @param remove_chr If `TRUE` remove 'chr' from the first column of the bed files.
+#' @param out_bed_name Name of output bed file, without the `.bed` extension. If missing use input file name.
+#' @param out_path path to directory where to save bed file. If folder doesn't exist create it.
+#'
+#' @return a bed file without a header
+#' @importFrom readr read_delim write_delim
+#' @importFrom dplyr across arrange
+#' @imporstringr stringr str_extract
+#' 
+inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, out_path) {
+  
+  if ( !file.exists(path) ) { stop('Input file does not exist!') }
+  input_basename <- basename(path)
+  
+  if ( missing(out_bed_name) ) {
+    out_bed_name <- str_extract(string = input_basename, pattern = '^*.*(?=\\.tab$)')
+  }
+  
+  if ( missing(out_path) ) { stop('Specify an output directory!') }
+  
+  if ( !dir.exists(out_path) ) { dir.create(path = out_path, recursive = T) }
+  
+  input <- read_delim(file = path, col_select = c(3,2,1), progress = F,
+                      delim = "\t", escape_double = FALSE, show_col_types = FALSE,
+                      col_names = FALSE, na = "empty", trim_ws = TRUE)  |>
+    setNames(c('COORD', 'EVENT', 'GENE')) |>
+    # if gene name is not there use the AS event ID
+    mutate(GENE = ifelse(test = GENE == "", yes = EVENT, no = GENE ) ) |>
+    mutate(chr = str_extract(string = COORD, pattern = '^chr[A0-Z9]+(?=:)')) |>
+    mutate(start = str_extract(string = COORD, pattern = '(?<=:)[0-9]+(?=-)')) |>
+    mutate(end = str_extract(string = COORD, pattern = '(?<=-)[0-9]+$')) |>
+    mutate(across(c(start, end), as.integer)) |>
+    select(chr, start, end, EVENT, GENE) 
+  
+  if ( remove_chr ) {
+    input$chr <- gsub(pattern = '^chr', replacement = '', x = input$chr)
+  }
+  
+  # sort
+  input |> arrange(chr, start) -> output
+  
+  write_delim(x = output, delim = '\t', append = F, col_names = F, quote = 'none', 
+              file = file.path(out_path, paste0(out_bed_name, '.bed')) )
 }
