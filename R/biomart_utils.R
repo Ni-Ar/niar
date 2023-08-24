@@ -5,8 +5,11 @@
 #' @param species a character specifying the species to work with. Currently the supported species are:
 #' \itemize{
 #' \item{\code{hsapiens} - Human (Homo Sapiens) Default}
+#' \item{\code{mmulatta} - Rhesus Macaque (Macaca mulatta)}
 #' \item{\code{mmusculus} - Mouse (Mus Musculus)}
 #' \item{\code{rnorvegicus} - Rat (Rattus Norvegicus)}
+#' \item{\code{btaurus} - Cattle, aka Cows & Bulls (Bos Taurus)}
+#' \item{\code{mdomestica} - Gray short-tailed Opossum (Monodelphis domestica)}
 #' \item{\code{ggallus} - Chicken (Gallus Gallus)}
 #' } 
 #' @param version Which database version of biomart do you want? Use:
@@ -36,7 +39,8 @@
 gimme_mart <- function(species = "hsapiens", version = 'latest', verbose = TRUE,
                        out_dir = FALSE, use_mirror = FALSE, which_mirror) {
   # ---- Check input parameters ----
-  supported_speciess <- c("hsapiens", "mmusculus", "rnorvegicus", "ggallus")
+  supported_speciess <- c("hsapiens", "mmulatta", "mmusculus", "rnorvegicus",
+                          "btaurus", "mdomestica", "ggallus")
   if (! species %in% supported_speciess ) {
     stop("The species you selected ", species, " is not yet supported. ",
          "Use first letter and second full name of the species scientific ",
@@ -244,7 +248,8 @@ ensembl_id_2_gene_name <- function(ensembl_gene_id, only_gene_name = TRUE,
 
   # -- 2 -- Retrieve some basic info for this gene ----
   things_to_retrieve <- c("ensembl_gene_id", "external_gene_name",
-                          "chromosome_name", "start_position", "gene_biotype")
+                          "chromosome_name", "start_position", "strand",
+                          "gene_biotype")
   
   goi_info <- getBM(attributes = things_to_retrieve,
                     filters = 'ensembl_gene_id',
