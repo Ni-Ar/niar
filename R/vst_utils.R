@@ -998,7 +998,7 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
 #'
 #' @return a sorted bed file without a header
 #' @importFrom readr read_delim write_delim
-#' @importFrom dplyr across arrange
+#' @importFrom dplyr across arrange select
 #' @imporstringr stringr str_extract
 #' 
 #' @details
@@ -1018,10 +1018,10 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
   
   if ( !dir.exists(out_path) ) { dir.create(path = out_path, recursive = T) }
   
-  input <- read_delim(file = path, col_select = c(3,2,1), progress = F,
+  input <- read_delim(file = path, col_select = c(3,2,1,5), progress = F,
                       delim = "\t", escape_double = FALSE, show_col_types = FALSE,
                       col_names = FALSE, na = "empty", trim_ws = TRUE)  |>
-    setNames(c('COORD', 'EVENT', 'GENE')) 
+    setNames(c('COORD', 'EVENT', 'GENE', 'FullCO')) 
   
   # if gene name is not there use the AS event ID
   input |>
@@ -1030,9 +1030,9 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
     mutate(start = str_extract(string = COORD, pattern = '(?<=:)[0-9]+(?=-)')) |>
     mutate(end = str_extract(string = COORD, pattern = '(?<=-)[0-9]+$')) |>
     mutate(across(c(start, end), as.integer)) |>
-    select(chr, start, end, EVENT, GENE) -> input
+    select(chr, start, end, EVENT, GENE, FullCO) -> input
   
-  # extract strand for exons
+  # extract strand for exons the others are just non-stranded
   indx_exons <- which(grepl(pattern = 'EX[0-9]+', x = input$EVENT))
   indx_others <- which(!grepl(pattern = 'EX[0-9]+', x = input$EVENT))
   # sanity check
@@ -1050,9 +1050,10 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
     mutate(strand = ifelse(test = C1donor <= C2acceptor, yes = '+', no = '-'), .before = FullCO ) |>
     select(chr, start, end, EVENT, GENE, strand) -> ex_in
   
-  # other types of events don't have a strand for now
+  # Add non-strand ('.') to others
   other_in <- input[indx_others, ]
   other_in$strand <- '.'
+  other_in <- other_in |> select(chr, start, end, EVENT, GENE, strand)
   
   # sort
   rbind(ex_in, other_in) |> arrange(chr, start) -> input
