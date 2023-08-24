@@ -996,10 +996,14 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
 #' @param out_bed_name Name of output bed file, without the `.bed` extension. If missing use input file name.
 #' @param out_path path to directory where to save bed file. If folder doesn't exist create it.
 #'
-#' @return a bed file without a header
+#' @return a sorted bed file without a header
 #' @importFrom readr read_delim write_delim
 #' @importFrom dplyr across arrange
 #' @imporstringr stringr str_extract
+#' 
+#' @details
+#' This function can also report the strand for exons, in the future I might implement this also for introns.
+#' 
 #' 
 inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, out_path) {
   
@@ -1017,22 +1021,46 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
   input <- read_delim(file = path, col_select = c(3,2,1), progress = F,
                       delim = "\t", escape_double = FALSE, show_col_types = FALSE,
                       col_names = FALSE, na = "empty", trim_ws = TRUE)  |>
-    setNames(c('COORD', 'EVENT', 'GENE')) |>
-    # if gene name is not there use the AS event ID
+    setNames(c('COORD', 'EVENT', 'GENE')) 
+  
+  # if gene name is not there use the AS event ID
+  input |>
     mutate(GENE = ifelse(test = GENE == "", yes = EVENT, no = GENE ) ) |>
     mutate(chr = str_extract(string = COORD, pattern = '^chr[A0-Z9]+(?=:)')) |>
     mutate(start = str_extract(string = COORD, pattern = '(?<=:)[0-9]+(?=-)')) |>
     mutate(end = str_extract(string = COORD, pattern = '(?<=-)[0-9]+$')) |>
     mutate(across(c(start, end), as.integer)) |>
-    select(chr, start, end, EVENT, GENE) 
+    select(chr, start, end, EVENT, GENE) -> input
+  
+  # extract strand for exons
+  indx_exons <- which(grepl(pattern = 'EX[0-9]+', x = input$EVENT))
+  indx_others <- which(!grepl(pattern = 'EX[0-9]+', x = input$EVENT))
+  # sanity check
+  stopifnot( length(indx_exons) + length(indx_others) == nrow(input) )
+  
+  # TO DO: implement strand detection also for introns
+  # For INT: chromosome:C1exon=C2exon:strand.
+  ex_in <- input[indx_exons, ]
+  
+  # From FullCO column extract the C1donor and C2acceptor splice sites coord
+  ex_in |>
+    mutate(C1donor = str_extract(pattern = '(?<=:)[0-9]+', string = FullCO), .before = EVENT) |>
+    mutate(C2acceptor = str_extract(pattern = '[0-9]+$', string = FullCO), .before = EVENT) |>
+    mutate(across(c(C1donor, C2acceptor), as.integer)) |>
+    mutate(strand = ifelse(test = C1donor <= C2acceptor, yes = '+', no = '-'), .before = FullCO ) |>
+    select(chr, start, end, EVENT, GENE, strand) -> ex_in
+  
+  # other types of events don't have a strand for now
+  other_in <- input[indx_others, ]
+  other_in$strand <- '.'
+  
+  # sort
+  rbind(ex_in, other_in) |> arrange(chr, start) -> input
   
   if ( remove_chr ) {
     input$chr <- gsub(pattern = '^chr', replacement = '', x = input$chr)
   }
   
-  # sort
-  input |> arrange(chr, start) -> output
-  
-  write_delim(x = output, delim = '\t', append = F, col_names = F, quote = 'none', 
+  write_delim(x = input, delim = '\t', append = F, col_names = F, quote = 'none', 
               file = file.path(out_path, paste0(out_bed_name, '.bed')) )
 }
