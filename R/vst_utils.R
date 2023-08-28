@@ -990,22 +990,30 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
 
 #' Create a bed file from events in a vast-tools inclusion table 
 #'
-#' @param path path to vast-tools inclusion file.
-#' @param header does the file have a header? If `FALSE` consider first row as an event
+#' @param path Path to vast-tools inclusion file or a tab delimited file with the same first ID columns as vast-tools inclusion tables.
+#' @param header Does the vast-tools inclusion file have a header? If `FALSE` consider first row as an event.
 #' @param remove_chr If `TRUE` remove 'chr' from the first column of the bed files.
-#' @param out_bed_name Name of output bed file, without the `.bed` extension. If missing use input file name.
-#' @param out_path path to directory where to save bed file. If folder doesn't exist create it.
+#' @param out_bed_name Name of output bed file, without the `.bed` extension. If missing use input file basename.
+#' @param out_path Path to directory where to save bed file. If folder doesn't exist create it.
+#' @param verbose If `TRUE` print now many lines are in the bed file.
 #'
-#' @return a sorted bed file without a header
+#' @return a sorted bed file without a header with EVENT ID in the 4th column and gene name in the 5th column.
 #' @importFrom readr read_delim write_delim
 #' @importFrom dplyr across arrange select
 #' @imporstringr stringr str_extract
 #' 
+#' @description
+#' The input file (specified with path), doesn't need to be specifically a vast-tools output file. 
+#' As long as the first five columns of the input file match the structure of a vast-tools inclusion table, this function will work.
+#' 
 #' @details
 #' This function can also report the strand for exons, in the future I might implement this also for introns.
-#' 
-#' 
-inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, out_path) {
+#'
+#' @example
+#' inclusion_tbl2bed(path = vst_tbl_path, header = T, remove_chr = T, 
+#'                   out_path = bed_dir)
+inclusion_tbl2bed <- function(path, header = TRUE, remove_chr = FALSE, 
+                              out_bed_name, out_path, verbose = TRUE) {
   
   if ( !file.exists(path) ) { stop('Input file does not exist!') }
   input_basename <- basename(path)
@@ -1020,7 +1028,7 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
   
   input <- read_delim(file = path, col_select = c(3,2,1,5), progress = F,
                       delim = "\t", escape_double = FALSE, show_col_types = FALSE,
-                      col_names = FALSE, na = "empty", trim_ws = TRUE)  |>
+                      col_names = header, na = "empty", trim_ws = TRUE)  |>
     setNames(c('COORD', 'EVENT', 'GENE', 'FullCO')) 
   
   # if gene name is not there use the AS event ID
@@ -1062,6 +1070,15 @@ inclusion_tbl2bed <- function(path, header = F, remove_chr = F, out_bed_name, ou
     input$chr <- gsub(pattern = '^chr', replacement = '', x = input$chr)
   }
   
+  if (verbose == TRUE) { 
+    message('Bed file with ', nrow(input), ' lines') 
+  } else if (verbose == FALSE) { 
+    # do nothing 
+  } else { 
+    stop('Parameter verbose must be a either TRUE or FALSE!') 
+  }
+  
   write_delim(x = input, delim = '\t', append = F, col_names = F, quote = 'none', 
+              progress = F, escape = 'none', 
               file = file.path(out_path, paste0(out_bed_name, '.bed')) )
 }
