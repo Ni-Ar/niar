@@ -627,11 +627,12 @@ read_vst_tbl <- function(path, verbose = FALSE, ...) {
 #' @importFrom readr read_delim
 #' @importFrom dplyr mutate select relocate left_join group_by
 #' @export
+#' 
+#' @seealso [plot_mouse_tissue_devel()]
 #'
 #' @examples
 #' # Get Pax6 gene expression and Pax6 exon 6 PSI across mouse tissues development.
 #' get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000027168", vst_id = "MmuEX0033804") 
-#'  
 get_mouse_tissue_devel_tbl <- function(inclusion_tbl = NULL, 
                                        vst_expression_tbl = NULL,
                                        metadata_path = NULL,
