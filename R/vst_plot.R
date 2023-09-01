@@ -489,11 +489,13 @@ plot_corr_gene_expr_psi <- function(data, quality_thrshld = "N",
 #' @import Cairo
 #' @import MetBrewer
 #' @export
+#' 
+#' @seealso [get_mouse_tissue_devel_tbl()]
 #'
 #' @examples
-#' # Save plot of Pax6 expression and its exon 6 PSI 
+#' # Plot Pax6 expression and its exon 6 PSI 
 #' get_mouse_tissue_devel_tbl(vst_id = "MmuEX0033804", ensembl_gene_id = "ENSMUSG00000027168")  |>
-#'          plot_mouse_tissue_devel(legend = "outside", save_plot = T)
+#'          plot_mouse_tissue_devel(legend = "inside", colour_bar = 'BlueRed')
 plot_mouse_tissue_devel <- function(data_tbl, title = NULL, legend = c('inside', 'outside'), 
                                     save_plot = FALSE, plot_name = NULL, 
                                     out_plot_dir = NULL, width = 7, height = 7,
@@ -731,7 +733,7 @@ plot_corr_dist <- function(data, binwidth = 0.05 ){
   num_genes <- nrow(data)
   ggplot(data) +
     aes(x = Correlation) +
-    geom_histogram(aes(fill = ..x..), binwidth = binwidth) +
+    geom_histogram(aes(fill = after_stat(x)), binwidth = binwidth) +
     geom_density(aes( y = binwidth * ..count..) ) + 
     geom_vline(xintercept = 0, linetype = 'solid') +
     scale_fill_gradient2(low = "dodgerblue", mid = "white",
