@@ -578,7 +578,7 @@ df2bits <- function(data, ID_col, alphabet, small_n_correction = FALSE,
   # -- 2 -- Calculate the Shannon entropy for each column.
   # If in a column there's only one letter of the alphabet the entropy will be zero.
   H_i <- df2ppm(data, ID_col, alphabet) |>
-    summarise(across(.cols = everything(), .fns = ~ -sum( (.x * log2(.x)), na.rm = T) ) )
+    reframe(across(.cols = everything(), .fns = ~ -sum( (.x * log2(.x)), na.rm = T) ) )
   
   # Get also the ppm that will be multiplied by R_i
   ppm <- df2ppm(data, ID_col, alphabet)
@@ -802,6 +802,10 @@ get_alphabet_palette <- function(alphabet, alphabet_name) {
                            'DNA_UPPER-gapped', 'RNA_UPPER-gapped', 
                            'user_specified_alphabet')
   
+  if ( !any(alphabet_name %in% supported_alphabets) ){
+    stop('The alphabet name ', alphabet_name, ' is not a supported alphabet!')
+  }
+
   if (alphabet_name == 'DNA_UPlowER') {
     
     palette <- make_col_scheme(
@@ -1026,7 +1030,7 @@ plot_bits_logo <- function(df, ID_col, alphabet, small_n_correction = FALSE,
     scale_x_continuous(expand = expansion(mult = 0, add = 0), 
                        breaks = breaks, labels = labels ) +
     scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.01) ),
-                       n.breaks = 5, limits = y_lims) +
+                       n.breaks = 3, limits = y_lims) +
     labs(y = 'bits', title = ttl_txt) +
     theme_classic(base_size = axis_txt_size, base_family = 'Arial') %+replace% 
     theme(panel.grid.major.x = element_blank(), 
@@ -1034,15 +1038,18 @@ plot_bits_logo <- function(df, ID_col, alphabet, small_n_correction = FALSE,
           panel.background = element_blank(),
           plot.background = element_blank(),
           legend.position = 'none', 
-          axis.line = element_line(linewidth = 0.15, colour = 'black'),
+          # axis.line = element_line(linewidth = 0.15, colour = 'black'),
+          axis.line = element_blank(),
           axis.title.x = element_blank(),
           axis.title.y = element_text(margin = margin(r = 0, unit = "mm"), angle = 90),
           axis.text = element_text(colour = "black"),
           axis.text.x = element_text(vjust = 1, margin = margin(t = -0.5, unit = "mm")),
           axis.text.y = element_text(hjust = 1, margin = margin(r = 0, unit = "mm")),
-          axis.ticks.x =  element_blank(),
-          axis.ticks.y = element_line(linewidth = 0.15, colour = 'black'),
-          axis.ticks.length.y = unit(1, 'mm')
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          # axis.ticks.y = element_line(linewidth = 0.15, colour = 'black'),
+          axis.ticks.length.y = unit(1, 'mm'),
+          plot.title = element_text(size = axis_txt_size - 1.1, hjust = 0.05, vjust = 0.75, margin = margin(b = 0)) 
     ) -> p_bits_logo
   return(p_bits_logo)
 }
@@ -1341,24 +1348,27 @@ plot_JSD_logo <- function(df1, df2, ID_col, alphabet,
     scale_x_continuous(expand = expansion(mult = 0, add = 0), 
                        breaks = breaks_p, labels = labels_p) +
     scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.01)),
-                       n.breaks = 5, limits = y_lims) +
+                       n.breaks = 3, limits = y_lims) +
     labs(y = 'JSD (bits)', title = ttl_txt) +
     theme_classic(base_size = axis_txt_size, base_family = 'Arial') %+replace% 
-    theme(panel.grid.major.x = element_line(linewidth = 0.15, colour = 'grey84'), 
-          panel.grid.minor.x = element_line(linewidth = 0.15, colour = 'grey84'), 
+    theme(#panel.grid.major.x = element_line(linewidth = 0.15, colour = 'grey84'), 
+          panel.grid.major.x = element_blank(), 
           panel.grid.major.y = element_line(linewidth = 0.15, colour = 'grey84'), 
           panel.background = element_blank(),
           plot.background = element_blank(),
           legend.position = 'none', 
-          axis.line = element_line(linewidth = 0.15, colour = 'black'),
+          # axis.line = element_line(linewidth = 0.15, colour = 'black'),
+          axis.line = element_blank(),
           axis.title.x = element_blank(),
           axis.title.y = element_text(margin = margin(r = 0, unit = "mm"), angle = 90),
           axis.text = element_text(colour = "black"),
           axis.text.x = element_text(vjust = 1, margin = margin(t = -0.5, unit = "mm")),
           axis.text.y = element_text(hjust = 1, margin = margin(r = 0, unit = "mm")),
-          axis.ticks.x =  element_blank(),
-          axis.ticks.y = element_line(linewidth = 0.15, colour = 'black'),
-          axis.ticks.length.y = unit(1, 'mm')
-    ) -> p_JSD_logo
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          # axis.ticks.y = element_line(linewidth = 0.15, colour = 'black'),
+          axis.ticks.length.y = unit(1, 'mm'),
+          plot.title = element_text(size = axis_txt_size - 1.1, hjust = 0.05, vjust = 0.75, margin = margin(b = 0)) 
+          ) -> p_JSD_logo
   return(p_JSD_logo)
 }
