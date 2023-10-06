@@ -107,3 +107,102 @@ longest_common_prefix <- function(names, uniquify = TRUE, verbose = TRUE) {
 }
 
 ## Write a function that combines both removal of longest prefix and suffix
+
+
+#' Import a bed file into R as a tibble
+#'
+#' @param path Path to bed file in your system specified as character
+#' @param header Is the bed file first line specifying the column names?
+#'
+#' @return A tibble
+#' @importFrom readr read_delim
+#' @export
+#' 
+#' @details
+#' If header = `F` than the UCSC official bed files column names are added.
+#'
+#' @examples
+#' read_bed(path = 'path/to/bed/file', header = F)
+read_bed <- function(path, header) {
+  
+  if (!file.exists(path) ) { stop('File path does not exist!') }
+  if (missing(header) ) { stop('Specify if input bed file contains a header!') }
+  
+  # Official columns names: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
+  bed_cols <- c('chr', 'start', 'end', 'name', 'score', 'strand', 
+                'thickStart', 'thickEnd', 'itemRGB', 
+                'blockCount', 'blockSize', 'blockStarts')
+  
+  bed_df <- read_delim(file = path, delim = '\t', quote = '', trim_ws = T, 
+                       progress = F, show_col_types = FALSE, col_names = header)
+  
+  # add official column names if missing
+  if (header == FALSE) {
+    num_cols_in <- ncol(bed_df)
+    colnames(bed_df) <- bed_cols[1:num_cols_in]
+  }
+  return(bed_df)
+}
+
+
+#' Extend upstream or downstream the coordinates of a bed file
+#'
+#' @param bed a tibble imported with `read_bed()`
+#' @param upstream How many nucleotides to add upstream to the start coordinate
+#' @param downstream How many nucleotides to add upstream to the end coordinate
+#' @param strand_aware Logical, whether or not to slop in a strand aware fashion.
+#'
+#' @return A tibble
+#' @export
+#'
+#' @description
+#' If `strand_aware` then for the negative strands start position is slopped by 
+#' the negative `downstream` value and
+#' the end position is slopped by adding the upstream value.
+#' 
+#' @details
+#' strand can only be specified with `+` or `-`,
+#' 
+#'
+#' @examples
+#' read_bed(path = test_coord, header = F)
+#' 
+#' # A tibble: 3 × 6
+#' # chr   start   end name    score strand
+#' # <chr> <dbl> <dbl> <chr>   <dbl> <chr> 
+#' # chr10   100   200 test1     0 +     
+#' # chr14   500   550 test2     0 -     
+#' # chr1    150   190 test3     0 -   
+#' 
+#' read_bed(path = exons_coord, header = F) |> slop_bed(upstream = 10, downstream = 5, strand_aware = T)
+#' 
+#' # A tibble: 3 × 6
+#' # chr   start   end name    score strand
+#' # <chr> <dbl> <dbl> <chr>   <dbl> <chr> 
+#' # chr10    90   205 test1     0 +     
+#' # chr14   495   560 test2     0 -     
+#' # chr1    145   200 test3     0 -     
+#' 
+slop_bed <- function(bed, upstream = 10, downstream = 5, strand_aware = T) {
+  
+  required_cols <- c('start', 'end')
+  
+  if (strand_aware == T) { required_cols <- c(required_cols, 'strand') }
+  
+  if (!any(grepl(pattern = '\\+|\\-', x = unique(bed$strand), perl = T)) ) {
+    stop('Strand must be specified as "+" or "-", not as: ', table(bed$strand) )
+  }
+  
+  if (strand_aware == TRUE ) {
+    slopped_bed <- bed |>
+      mutate(start = ifelse(strand == '+', start - upstream, start - downstream),
+             end = ifelse(strand == '+', end + downstream, end + upstream) ) 
+  } else if (strand_aware == FALSE ) {
+    stop('Strand unaware slopping is not yet supported!')
+  } else {
+    stop('strand_aware must be either TRUE or FALSE')
+  }
+  
+  return(slopped_bed)
+}
+
