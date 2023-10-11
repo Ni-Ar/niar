@@ -1,0 +1,57 @@
+---
+title: "Mouse Development ENCODE AS exploration"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Mouse_Development_ENCODE_AS_exploration}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, include = FALSE}
+devtools::load_all(".")
+```
+
+# Intro 
+
+[ENCODE released](https://www.encodeproject.org/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus) a nice dataset of different genomics data at different stages of development in different tissues.
+
+I took their RNA-seq data and analysed it with vast-tools to make a plot for the supplementary figure 1 of our [paper](https://doi.org/10.1101/2023.04.30.538846). 
+
+While analysing the data I ended up making a function that queries the vast-tools output tables and a nice plotting function. Here I show how to use them.
+
+# Import pre-precessed data
+
+These vignette showcase how to analyse one single alternative splicing (AS) event at the time. This is not a high-level data exploration. The function `get_mouse_tissue_devel_tbl()` in this package let's you import into R all the metadata, gene expression levels, and PSI of an AS event. All you need is a valid [mouse ensembl gene id](http://www.ensembl.org/Mus_musculus/Info/Index) and an AS event vast-tools id, that you can find in [VastD](https://vastdb.crg.eu/wiki/Main_Page). 
+
+For example if you want to explore *Pax6* exon 6 PSI across different tissues and embryonic stages, simply run
+
+```{r, Pax6 example}
+Pax6 <- get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000027168", vst_id = "MmuEX0033804")
+```
+
+where [`ENSMUSG00000027168`](http://www.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000027168;r=2:105499245-105527709) is the ensembl gene id of Pax6 and [`MmuEX0033804`](https://vastdb.crg.eu/event/MmuEX0033804@mm10) is the mouse AS id. 
+
+The pre-processed data is stored on the CRG cluter at `/users/mirimia/narecco/projects/07_Suz12AS/data/INCLUSION_tbl/Mouse_Development/vast_tools/vast_out`. You should be able to access it easily, but if you get an error that might be related to access rights, please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new) or write me an email. Of course this wrapper works only if you have access to the CRG cluster and works very well using the [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/). If this was a proper `R` package the pre-processed data would be attached to the package, but for sack of convenience I wanted to keep the `niar` package lightweight. 
+
+# Plot the data
+
+To visually represent the data like in the Arecco, Mocavini et al. publication simply run:
+
+```{r, Pax6 plot, warning = FALSE, fig.width = 4, fig.height = 4}
+plot_mouse_tissue_devel(data_tbl = Pax6, legend = "inside", colour_bar = 'BlueRed')
+```
+The developmental stages are on the X-axis, and the different tissues are on the Y-axis. The dots size represent the expression levels of the gene specified with `ensembl_gene_id` when querying the data. The dots colour represent the PSI value of the exon specified with `vst_id` before. If you don't like this colour palette you can use `colour_bar = 'viridis'` as an alternative. Also the legend position can adjusted with `legend = "outside"`.
+
+```{r, Pax6 plot with different params, warning = FALSE, message = FALSE, fig.width = 4, fig.height = 4}
+plot_mouse_tissue_devel(data_tbl = Pax6, legend = "outside", colour_bar = 'viridis')
+```
+There are other additional features like limiting the PSI range with `PSI_limits = c(0, 100)` or deciding PSI threshold to show PSI numbers with black text rather than white (PSI of 100 in black is hard to read on a dark purple background). 
+
+Lastly you can save the plot on the fly with `save_plot = TRUE` and specifying the location where to save with `out_plot_dir = /path/to/file` and the plot name with the `plot_name` parameter. These last parameters have good defaults options so not really required in my option. To know more run: `?get_mouse_tissue_devel_tbl()`. 
