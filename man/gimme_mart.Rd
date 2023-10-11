@@ -17,8 +17,11 @@ gimme_mart(
 \item{species}{a character specifying the species to work with. Currently the supported species are:
 \itemize{
 \item{\code{hsapiens} - Human (Homo Sapiens) Default}
+\item{\code{mmulatta} - Rhesus Macaque (Macaca mulatta)}
 \item{\code{mmusculus} - Mouse (Mus Musculus)}
 \item{\code{rnorvegicus} - Rat (Rattus Norvegicus)}
+\item{\code{btaurus} - Cattle, aka Cows & Bulls (Bos Taurus)}
+\item{\code{mdomestica} - Gray short-tailed Opossum (Monodelphis domestica)}
 \item{\code{ggallus} - Chicken (Gallus Gallus)}
 }}
 

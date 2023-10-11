@@ -2,7 +2,7 @@
 % Please edit documentation in R/vst_utils.R
 \name{tidy_vst_psi}
 \alias{tidy_vst_psi}
-\title{Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.}
+\title{Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table.}
 \usage{
 tidy_vst_psi(
   vst_psi_tbl,
@@ -39,7 +39,10 @@ tidy_vst_psi(
 A reshaped \code{data.frame} in long format as \code{tibble}.
 }
 \description{
-Reshape a wide vast-tools inclusion table into a tidyverse-friendly long table. This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
+This function works with inclusion tables generated both by vast-tools combine or compare. In the latter case, if there's a 'dPSI' column it will be automatically detect and included in the reshaped table.
+}
+\details{
+This function works well in conjunction with \code{grep_psi()} function.
 }
 \examples{
 grep_psi(path_to_vst_PSI_tbl, vst_id = "HsaEX0000001") |>

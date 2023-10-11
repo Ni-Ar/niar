@@ -48,7 +48,10 @@ A ggplot2 plot or a pdf.
 Nice plot to check expression and PSI across ENCODE mouse developmental stages of different tissues.
 }
 \examples{
-# Save plot of Pax6 expression and its exon 6 PSI 
+# Plot Pax6 expression and its exon 6 PSI 
 get_mouse_tissue_devel_tbl(vst_id = "MmuEX0033804", ensembl_gene_id = "ENSMUSG00000027168")  |>
-         plot_mouse_tissue_devel(legend = "outside", save_plot = T)
+         plot_mouse_tissue_devel(legend = "inside", colour_bar = 'BlueRed')
+}
+\seealso{
+\code{\link[=get_mouse_tissue_devel_tbl]{get_mouse_tissue_devel_tbl()}}
 }
