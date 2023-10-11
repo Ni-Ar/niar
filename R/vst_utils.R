@@ -1001,7 +1001,7 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
 #' @return a sorted bed file without a header with EVENT ID in the 4th column and gene name in the 5th column.
 #' @importFrom readr read_delim write_delim
 #' @importFrom dplyr across arrange select
-#' @imporstringr stringr str_extract
+#' @importFrom stringr stringr str_extract
 #' 
 #' @description
 #' The input file (specified with path), doesn't need to be specifically a vast-tools output file. 
@@ -1010,9 +1010,8 @@ gimme_PSI_expr_corr <- function(inclusion_tbl, vst_id, quality_thrshld = "N",
 #' @details
 #' This function can also report the strand for exons, in the future I might implement this also for introns.
 #'
-#' @example
-#' inclusion_tbl2bed(path = vst_tbl_path, header = T, remove_chr = T, 
-#'                   out_path = bed_dir)
+#' @examples
+#' inclusion_tbl2bed(path = vst_tbl_path, header = T, remove_chr = T, out_path = bed_dir)
 inclusion_tbl2bed <- function(path, header = TRUE, remove_chr = FALSE, 
                               out_bed_name, out_path, verbose = TRUE) {
   
