@@ -196,7 +196,7 @@ slop_bed <- function(bed, upstream = 10, downstream = 5, strand_aware = T) {
   if (strand_aware == TRUE ) {
     slopped_bed <- bed |>
       mutate(start = ifelse(strand == '+', start - upstream, start - downstream),
-             end = ifelse(strand == '+', end + downstream, end + upstream) ) 
+             end = ifelse(strand == '+', end + downstream, end + upstream + 1) ) # add + 1 for negative strand.
   } else if (strand_aware == FALSE ) {
     stop('Strand unaware slopping is not yet supported!')
   } else {
