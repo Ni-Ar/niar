@@ -28,12 +28,13 @@ While analysing the data I ended up making a function that queries the vast-tool
 
 # Import pre-precessed data
 
-These vignette showcase how to analyse one single alternative splicing (AS) event at the time. This is not a high-level data exploration. The function `get_mouse_tissue_devel_tbl()` in this package let's you import into R all the metadata, gene expression levels, and PSI of an AS event. All you need is a valid [mouse ensembl gene id](http://www.ensembl.org/Mus_musculus/Info/Index) and an AS event vast-tools id, that you can find in [VastD](https://vastdb.crg.eu/wiki/Main_Page). 
+These vignette showcase how to analyse one single alternative splicing (AS) event at the time. This is not a high-level data exploration. The function `get_mouse_tissue_devel_tbl()` in this package let's you import into R all the metadata, gene expression levels, and PSI of an AS event. All you need is a valid [mouse ensembl gene id](http://www.ensembl.org/Mus_musculus/Info/Index) and an AS event vast-tools id, that you can find in [VastDB](https://vastdb.crg.eu/wiki/Main_Page). 
 
 For example if you want to explore *Pax6* exon 6 PSI across different tissues and embryonic stages, simply run
 
 ```{r, Pax6 example}
-Pax6 <- get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000027168", vst_id = "MmuEX0033804")
+Pax6 <- get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000027168", 
+                                   vst_id = "MmuEX0033804")
 ```
 
 where [`ENSMUSG00000027168`](http://www.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000027168;r=2:105499245-105527709) is the ensembl gene id of Pax6 and [`MmuEX0033804`](https://vastdb.crg.eu/event/MmuEX0033804@mm10) is the mouse AS id. 
@@ -47,11 +48,13 @@ To visually represent the data like in the Arecco, Mocavini et al. publication s
 ```{r, Pax6 plot, warning = FALSE, fig.width = 4, fig.height = 4}
 plot_mouse_tissue_devel(data_tbl = Pax6, legend = "inside", colour_bar = 'BlueRed')
 ```
+
 The developmental stages are on the X-axis, and the different tissues are on the Y-axis. The dots size represent the expression levels of the gene specified with `ensembl_gene_id` when querying the data. The dots colour represent the PSI value of the exon specified with `vst_id` before. If you don't like this colour palette you can use `colour_bar = 'viridis'` as an alternative. Also the legend position can adjusted with `legend = "outside"`.
 
 ```{r, Pax6 plot with different params, warning = FALSE, message = FALSE, fig.width = 4, fig.height = 4}
 plot_mouse_tissue_devel(data_tbl = Pax6, legend = "outside", colour_bar = 'viridis')
 ```
+
 There are other additional features like limiting the PSI range with `PSI_limits = c(0, 100)` or deciding PSI threshold to show PSI numbers with black text rather than white (PSI of 100 in black is hard to read on a dark purple background). 
 
 Lastly you can save the plot on the fly with `save_plot = TRUE` and specifying the location where to save with `out_plot_dir = /path/to/file` and the plot name with the `plot_name` parameter. These last parameters have good defaults options so not really required in my option. To know more run: `?get_mouse_tissue_devel_tbl()`. 
