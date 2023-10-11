@@ -279,10 +279,9 @@ parse_bed_vcf_isec <- function(df, snp_ID_col = 'RefSNP_ID', left_slop,
 #' @param end_centre_len Just consider the last N part of the centre region.
 #' @param check_bins
 #'
-#' @return
+#' @return A data.frame
 #' @export
 #'
-#' @examples
 count_snps_in_bins <- function(df, snp_ID_col = 'RefSNP_ID', 
                                left_slop, 
                                right_slop, 
@@ -454,6 +453,7 @@ count_snps_in_bins <- function(df, snp_ID_col = 'RefSNP_ID',
 #' @param event_type Text to put in the title.
 #'
 #' @return A ggplot
+#' @import ggplot2
 #' @export
 #' @note save the plots with ggsave( device = cairo_pdf) and not with device = 'pdf'.
 #' @details
@@ -461,7 +461,6 @@ count_snps_in_bins <- function(df, snp_ID_col = 'RefSNP_ID',
 #' `event` colours by the number of events (i.e. exons) with an SNP in that specific bin. It serves to check that high bars are due to many different event regions and not one single hot spot in few events.
 #' `bin` colours by the bin number in each region and `count` fills based on how tall is the bar in the histogram.
 #'
-#' @examples
 hallgrimskirkja_plot <- function(df, left_slop, right_slop, left_bins_num = 50, 
                                  centre_bins_num = 50, right_bins_num = 25, 
                                  facet_regions = F, legend_position = c(0.94, 0.7),
