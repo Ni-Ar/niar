@@ -10,8 +10,10 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  check_title = FALSE
 )
+options(rmarkdown.html_vignette.check_title = FALSE)
 ```
 
 ```{r, include = FALSE}
@@ -26,7 +28,9 @@ I took their RNA-seq data and analysed it with vast-tools to make a plot for the
 
 While analysing the data I ended up making a function that queries the vast-tools output tables and a nice plotting function. Here I show how to use them.
 
-# Import pre-precessed data
+# Pax6 exon 6 example
+
+## Import pre-precessed data
 
 These vignette showcase how to analyse one single alternative splicing (AS) event at the time. This is not a high-level data exploration. The function `get_mouse_tissue_devel_tbl()` in this package let's you import into R all the metadata, gene expression levels, and PSI of an AS event. All you need is a valid [mouse ensembl gene id](http://www.ensembl.org/Mus_musculus/Info/Index) and an AS event vast-tools id, that you can find in [VastDB](https://vastdb.crg.eu/wiki/Main_Page). 
 
@@ -41,7 +45,7 @@ where [`ENSMUSG00000027168`](http://www.ensembl.org/Mus_musculus/Gene/Summary?db
 
 The pre-processed data is stored on the CRG cluter at `/users/mirimia/narecco/projects/07_Suz12AS/data/INCLUSION_tbl/Mouse_Development/vast_tools/vast_out`. You should be able to access it easily, but if you get an error that might be related to access rights, please [open a GitHub issue](https://github.com/Ni-Ar/niar/issues/new) or write me an email. Of course this wrapper works only if you have access to the CRG cluster and works very well using the [CRG RStudio Server IDE](https://rstudio42.linux.crg.es/). If this was a proper `R` package the pre-processed data would be attached to the package, but for sack of convenience I wanted to keep the `niar` package lightweight. 
 
-# Plot the data
+## Plot the data
 
 To visually represent the data like in the Arecco, Mocavini et al. publication simply run:
 
@@ -58,3 +62,38 @@ plot_mouse_tissue_devel(data_tbl = Pax6, legend = "outside", colour_bar = 'virid
 There are other additional features like limiting the PSI range with `PSI_limits = c(0, 100)` or deciding PSI threshold to show PSI numbers with black text rather than white (PSI of 100 in black is hard to read on a dark purple background). 
 
 Lastly you can save the plot on the fly with `save_plot = TRUE` and specifying the location where to save with `out_plot_dir = /path/to/file` and the plot name with the `plot_name` parameter. These last parameters have good defaults options so not really required in my option. To know more run: `?get_mouse_tissue_devel_tbl()`. 
+
+# PTBP1 & PTBP2 example
+
+These 2 function can also be used to plot an exon PSI and the expression of another gene. To display this I like to use the Ptbp1/2 NMD-dependent cross-regulation. (See PMID: 26293963 and 17606642 for details).
+
+-   `ENSMUSG00000006498` = *Ptbp1*; `MmuEX0037628` = *Ptbp1* exon 9
+
+-   `ENSMUSG00000028134` = *Ptbp2*; `MmuEX0037640` = *Ptbp2* exon 11
+
+Briefly, *Ptbp1* splicing factor repress the inclusion *Ptbp2* exon 11 triggering NMD and resulting in lower level of PTBP2 in non-neuronal cells. 
+
+Here I plot the expression of *Ptbp1* and *Ptbp2* exon 11 PSI. 
+
+```{r Ptbp1 expression vs exon 11, warning = FALSE, message = FALSE, fig.width = 4, fig.height = 4}
+get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000006498",
+                           vst_id = "MmuEX0037640") |>
+  plot_mouse_tissue_devel(legend = "inside", colour_bar = 'BlueRed', 
+                          title = "Ptbp1 expression vs Ptbp2 exon 11 inclusion", 
+                          blck_wht_PSI_col_thshld = 75)
+```
+
+As one can see the tissues and developmental stages where the exon is more lowly included are those where *Ptbp1* are more included.
+
+Here instead I show how the gene expression (expressed in log2 TPMs) of *Ptbp2* is higher in the tissues where the exon 11 inclusion levels are higher.
+
+```{r Ptbp2 expression vs exon 11, warning = FALSE, message = FALSE, fig.width = 4, fig.height = 4}
+get_mouse_tissue_devel_tbl(ensembl_gene_id = "ENSMUSG00000028134",
+                           vst_id = "MmuEX0037640") |>
+  plot_mouse_tissue_devel(legend = "inside", colour_bar = 'BlueRed',
+                          title = "Ptbp2 expression vs Ptbp2 exon 11 inclusion", 
+                          blck_wht_PSI_col_thshld = 75)
+```
+
+Note how the data retrieving function output is piped on the fly to the plotting function input with `|>`. If you don't have R 4.1+ you can use magrittr `%>%` operator.
+
