@@ -1,5 +1,5 @@
 ---
-title: "Mouse Development ENCODE AS exploration"
+title: "Mouse Development ENCODE RNA-seq Alternative Splicing Exploration"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Mouse_Development_ENCODE_AS_exploration}
