@@ -108,7 +108,6 @@ longest_common_prefix <- function(names, uniquify = TRUE, verbose = TRUE) {
 
 ## Write a function that combines both removal of longest prefix and suffix
 
-
 #' Import a bed file into R as a tibble
 #'
 #' @param path Path to bed file in your system specified as character
@@ -206,3 +205,121 @@ slop_bed <- function(bed, upstream = 10, downstream = 5, strand_aware = T) {
   return(slopped_bed)
 }
 
+#' Perform one-hot encoding of any character string
+#'
+#' @param string A string of letters to be one-hot encoded. Case-sensitive!
+#' @param alphabet_order A one-letter character vector specifying the alphabet order. 
+#' It must contain every letter present in `string`. 
+#' If missing the alphabetical order will be used. Default is DNA alphabet: `c('A', 'T', 'C', 'G')`.
+#'
+#' @return a data.frame
+#' @export
+#' @description
+#' Given any sequence return a data.frame where every column corresponds to one
+#' letter of the input `string` and each row corresponds to a letter as set in the
+#' `alphabet_order`. Each cell in the data.frame will be a zero, only when the column 
+#' equals the row it will be a `1`. 
+#' For example, in the case of DNA each nucleotide will be represented as a vector of
+#'  length 4, where 3 positions are 0 and only one position is 1, depending on the nucleotide.
+#' 
+#' @details
+#' If `alphabet_order` is not specified the function will create one on the fly 
+#' sorting the input `string` by alphabetical order. If a letter in the `string` 
+#' character vector is not present in the `alphabet_order` the function will 
+#' return an error. Special characters and numbers are allowed (see examples).
+#'
+#' @author Niccolò Arecco
+#' @keywords onehot
+#' 
+#' @examples
+#' # RNA example
+#' encode_onehot(string = "UUUAAACCCGG", alphabet_order = c('A', 'U', 'C', 'G'))
+#' # Returns the following data.frame where the rows are ordered as in the 
+#' # alphabet_order and the columns are ordered as the input string.
+#'   U U U A A A C C C G G G
+#' A 0 0 0 1 1 1 0 0 0 0 0 0
+#' U 1 1 1 0 0 0 0 0 0 0 0 0
+#' G 0 0 0 0 0 0 0 0 0 1 1 1
+#' C 0 0 0 0 0 0 1 1 1 0 0 0
+#' 
+#' # Alphabet is optional 
+#' encode_onehot(string = 'ATHCAY')
+#' # Returns the following data.frame where the input string was sorted 
+#' # alphabetically to generate the order on the rows
+#'   A T H C A Y
+#' A 1 0 0 0 1 0
+#' C 0 0 0 1 0 0
+#' H 0 0 1 0 0 0
+#' T 0 1 0 0 0 0
+#' Y 0 0 0 0 0 1
+#' 
+#' # Case sensitive input
+#' encode_onehot(string = 'acACCnN')
+#' # Returns the following data.frame where lower case letters appear before upper case one
+#'   a c A C C n N
+#' a 1 0 0 0 0 0 0
+#' A 0 0 1 0 0 0 0
+#' c 0 1 0 0 0 0 0
+#' C 0 0 0 1 1 0 0
+#' n 0 0 0 0 0 1 0
+#' N 0 0 0 0 0 0 1
+#' 
+#' # Special characters and numbers are encoded just fine
+#' encode_onehot(string = 'MaQ8T!S-K C2C*')
+#' # Returns a data.frame where symbols are sorted first. 
+#' # Note how the space (' ') is both a row name and column name
+#'   M a Q 8 T ! S - K   C 2 C *
+#'   0 0 0 0 0 0 0 0 0 1 0 0 0 0
+#' - 0 0 0 0 0 0 0 1 0 0 0 0 0 0
+#' ! 0 0 0 0 0 1 0 0 0 0 0 0 0 0
+#' * 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+#' 2 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+#' 8 0 0 0 1 0 0 0 0 0 0 0 0 0 0
+#' a 0 1 0 0 0 0 0 0 0 0 0 0 0 0
+#' C 0 0 0 0 0 0 0 0 0 0 1 0 1 0
+#' K 0 0 0 0 0 0 0 0 1 0 0 0 0 0
+#' M 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+#' Q 0 0 1 0 0 0 0 0 0 0 0 0 0 0
+#' S 0 0 0 0 0 0 1 0 0 0 0 0 0 0
+#' T 0 0 0 0 1 0 0 0 0 0 0 0 0 0
+#' 
+encode_onehot <- function(string, alphabet_order = c('A', 'T', 'C', 'G') ) {
+  # 1 - Check input ------------
+  if (missing(string)) { stop('Input string is missing!') }
+  if (missing(alphabet_order)) { alphabet_order <- sort(input_letters) }
+  
+  # Check that all input letters are in the ordered alphabet
+  input_letters <- unique(unlist(strsplit(x = string, split = '')))
+  if( !all(input_letters %in% alphabet_order) ) {
+    extra_letter <- input_letters[which(!input_letters %in% alphabet_order)]
+    stop('Input letter ', extra_letter, ' is not part of the alphabet')
+  }
+  
+  # 2 - Construct a one hot decoder based on the alphabet order ------------
+  num_letters <- length(unique(alphabet_order))
+  decoder <- data.frame(letter = alphabet_order, onehot = c(1:num_letters))
+  
+  # 3 - Create matrix of zeros: cols = string x rows = alphabet ------------
+  mat <- matrix( rep(0, num_letters * nchar(string) ), 
+                nrow = num_letters, ncol = nchar(string), byrow = T )
+  colnames(mat) <- unlist(strsplit(x = string, split = '') )
+  rownames(mat) <- alphabet_order
+  df <- as.data.frame(mat) # coerce matrix to data.frame
+  
+  # 4 - Start a double for loop to encode ------------
+  # For every column in data.frame (that is a letter in the sequence)
+  for (c in 1:ncol(df) ) { 
+    # For every letter in the decoder (that is a letter in the alphabet)
+    for (l in 1:num_letters) { 
+      # If column and row letters are equal
+      if ( colnames(df)[c] ==  decoder[l, ]$letter) {
+        # Create an empty string of zeros of the same length of the alphabet
+        string <- rep(0, num_letters)
+        # Convert to 1 only the position that matches
+        string[decoder[l, ]$onehot] <- 1
+        df[, c] <- string
+      }
+    }
+  }
+  return(df)
+}
