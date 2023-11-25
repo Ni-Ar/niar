@@ -286,10 +286,11 @@ slop_bed <- function(bed, upstream = 10, downstream = 5, strand_aware = T) {
 encode_onehot <- function(string, alphabet_order = c('A', 'T', 'C', 'G') ) {
   # 1 - Check input ------------
   if (missing(string)) { stop('Input string is missing!') }
-  if (missing(alphabet_order)) { alphabet_order <- sort(input_letters) }
   
   # Check that all input letters are in the ordered alphabet
   input_letters <- unique(unlist(strsplit(x = string, split = '')))
+  if (missing(alphabet_order)) { alphabet_order <- sort(input_letters) }
+  
   if( !all(input_letters %in% alphabet_order) ) {
     extra_letter <- input_letters[which(!input_letters %in% alphabet_order)]
     stop('Input letter ', extra_letter, ' is not part of the alphabet')
