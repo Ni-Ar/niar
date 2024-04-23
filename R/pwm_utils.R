@@ -727,11 +727,11 @@ renumber_logo_seq_breaks <- function(seq, lowercase_spacer = 5,
     last_lowercase_breaks <- NULL
   }
   
-  c(  first_lowercase_breaks,
-      lwrcs_l_up + 1, # breaks first exon number,
-      seq(from = lwrcs_l_up + uppercase_spacer, to = (seq_len - lwrcs_l_do), by = uppercase_spacer), # upper-case breaks
-      as.integer(seq_len - lwrcs_l_do), # last Upper-case letter position
-      last_lowercase_breaks
+  c( first_lowercase_breaks,
+     lwrcs_l_up + 1, # breaks first exon number,
+     seq(from = lwrcs_l_up + uppercase_spacer, to = (seq_len - lwrcs_l_do), by = uppercase_spacer), # upper-case breaks
+     as.integer(seq_len - lwrcs_l_do), # last Upper-case letter position
+     last_lowercase_breaks
   ) -> best_breaks
   best_breaks <- unique(best_breaks)
   
@@ -977,19 +977,20 @@ plot_bits_logo <- function(df, ID_col, alphabet, small_n_correction = FALSE,
   
   # pick a random representative sequence from each dataset
   seq <- sample(df$Sequence, size = 1)
+  Xaxis_numbers <- renumber_logo_seq_breaks(seq, ...)
   
-  if (alphabet_name %in% c('DNA_UPlowER', 'RNA_UPlowER') ) {
-    # set X-axis breaks & labels based on the UPPER- lower-case transitions
-    message('Trying to find the best breaks based on letters case' )
-    Xaxis_numbers <- renumber_logo_seq_breaks(seq, ...)
-  } else {
-    message('Trying nothing with the x-axis breaks' )
-    # if the sequence doesn't have UPPER or lower cases just start from 1
-    Xaxis_numbers <- list()
-    x_breaks_spacing <- round(nchar(seq) * 0.05, 0) + 1
-    Xaxis_numbers$Breaks <- seq(from = 1, to = nchar(seq), by = x_breaks_spacing)
-    Xaxis_numbers$Labels <- seq(from = 1, to = nchar(seq), by = x_breaks_spacing)
-  }
+  # if (alphabet_name %in% c('DNA_UPlowER', 'RNA_UPlowER') ) {
+  #   # set X-axis breaks & labels based on the UPPER- lower-case transitions
+  #   message('Trying to find the best breaks based on letters case' )
+  #   Xaxis_numbers <- renumber_logo_seq_breaks(seq, ...)
+  # } else {
+  #   message('Trying nothing with the x-axis breaks' )
+  #   # if the sequence doesn't have UPPER or lower cases just start from 1
+  #   Xaxis_numbers <- list()
+  #   x_breaks_spacing <- round(nchar(seq) * 0.05, 0) + 1
+  #   Xaxis_numbers$Breaks <- seq(from = 1, to = nchar(seq), by = x_breaks_spacing)
+  #   Xaxis_numbers$Labels <- seq(from = 1, to = nchar(seq), by = x_breaks_spacing)
+  # }
 
   breaks <- Xaxis_numbers$Breaks
   labels <- Xaxis_numbers$Labels
@@ -1286,19 +1287,22 @@ plot_JSD_logo <- function(df1, df2, ID_col, alphabet,
   seq_q <- sample(df2$Sequence, size = 1)
   
   # set X-axis breaks & labels based on the UPPER- lower-case transitions
-  if (alphabet_name %in% c('DNA_UPlowER', 'RNA_UPlowER') ) {
-    Xaxis_numbers_p <- renumber_logo_seq_breaks(seq_p, ...)
-    Xaxis_numbers_q <- renumber_logo_seq_breaks(seq_q, ...)
-  } else {
-    # if the sequences don't have UPPER or lower cases just start from 1
-    Xaxis_numbers_p <- list()
-    Xaxis_numbers_p$Breaks <- 1:length(seq_p)
-    Xaxis_numbers_p$Labels <- 1:length(seq_p)
-    
-    Xaxis_numbers_q <- list()
-    Xaxis_numbers_q$Breaks <- 1:length(seq_q)
-    Xaxis_numbers_q$Labels <- 1:length(seq_q)
-  }
+  Xaxis_numbers_p <- renumber_logo_seq_breaks(seq_p, ...)
+  Xaxis_numbers_q <- renumber_logo_seq_breaks(seq_q, ...)
+  
+  # if (alphabet_name %in% c('DNA_UPlowER', 'RNA_UPlowER') ) {
+  #   Xaxis_numbers_p <- renumber_logo_seq_breaks(seq_p, ...)
+  #   Xaxis_numbers_q <- renumber_logo_seq_breaks(seq_q, ...)
+  # } else {
+  #   # if the sequences don't have UPPER or lower cases just start from 1
+  #   Xaxis_numbers_p <- list()
+  #   Xaxis_numbers_p$Breaks <- 1:length(seq_p)
+  #   Xaxis_numbers_p$Labels <- 1:length(seq_p)
+  #   
+  #   Xaxis_numbers_q <- list()
+  #   Xaxis_numbers_q$Breaks <- 1:length(seq_q)
+  #   Xaxis_numbers_q$Labels <- 1:length(seq_q)
+  # }
   
   breaks_p <- Xaxis_numbers_p$Breaks
   labels_p <- Xaxis_numbers_p$Labels
