@@ -164,7 +164,7 @@ fasta2pim <- function(input_path, percentage_identity = TRUE, ...) {
   # by default dist.alignment returns sqrt(1-dist).
   if (percentage_identity == TRUE) {
     # convert it back to the percentage of sequence identity
-    pim <- (-(d ^ 2) + 1)*100
+    pim <- ( -(d ^ 2) + 1 ) * 100
     stopifnot(all(dim(d) == dim(pim)))
     return(pim)
   } else if (percentage_identity == FALSE) {
