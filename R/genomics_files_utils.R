@@ -223,7 +223,7 @@ read_gtf <- function(path, max_rows = 1e4, col_attribute_type = 'character', ...
   gtf <- read_delim(file = path, delim = '\t', comment = '#!',
                     col_names = c('seqname', 'source', 'feature', 'start', 
                                   'end', 'score', 'strand', 'frame', 'attribute'), 
-                    col_types = c('i', 'c', 'c', 'i', 'i', 'c', 'c', 'c', 'c'),
+                    col_types = c('c', 'c', 'c', 'i', 'i', 'c', 'c', 'c', 'c'),
                     n_max = max_rows) 
   if ( col_attribute_type == 'character' ) {
     # do nothing
