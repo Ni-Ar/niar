@@ -1055,6 +1055,7 @@ inclusion_tbl2bed <- function(path, header = TRUE, remove_chr = FALSE,
     mutate(C1donor = str_extract(pattern = '(?<=:)[0-9]+', string = FullCO), .before = EVENT) |>
     mutate(C2acceptor = str_extract(pattern = '[0-9]+$', string = FullCO), .before = EVENT) |>
     mutate(across(c(C1donor, C2acceptor), as.integer)) |>
+    # If the downstream acceptor is bigger than the upstream donor then it's on the positive strand.
     mutate(strand = ifelse(test = C1donor <= C2acceptor, yes = '+', no = '-'), .before = FullCO ) |>
     select(chr, start, end, EVENT, GENE, strand) -> ex_in
   
@@ -1070,15 +1071,15 @@ inclusion_tbl2bed <- function(path, header = TRUE, remove_chr = FALSE,
     input$chr <- gsub(pattern = '^chr', replacement = '', x = input$chr)
   }
   
+  write_delim(x = input, delim = '\t', append = F, col_names = F, quote = 'none', 
+              progress = F, escape = 'none', 
+              file = file.path(out_path, paste0(out_bed_name, '.bed')) )
+  
   if (verbose == TRUE) { 
-    message('Bed file with ', nrow(input), ' lines') 
+    message('Saved a bed file with ', nrow(input), ' lines') 
   } else if (verbose == FALSE) { 
     # do nothing 
   } else { 
     stop('Parameter verbose must be a either TRUE or FALSE!') 
   }
-  
-  write_delim(x = input, delim = '\t', append = F, col_names = F, quote = 'none', 
-              progress = F, escape = 'none', 
-              file = file.path(out_path, paste0(out_bed_name, '.bed')) )
 }
