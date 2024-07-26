@@ -595,7 +595,7 @@ guess_species <- function(vst_id, latin_name = F) {
 #' @param ... extra info to pass to `read_delim`.
 #'
 #' @return A tibble
-#' @importFrom readr read_delim
+#' @importFrom readr read_delim locale
 #' @export
 #'
 #' @examples
@@ -603,14 +603,14 @@ guess_species <- function(vst_id, latin_name = F) {
 #'    tidy_vst_psi()
 #'  
 read_vst_tbl <- function(path, verbose = FALSE, ...) {
-  if (!file.exists(path)) { stop('Cannot find vast-tools table!\n') }
+  check_file(path)
   
   if (verbose) {
     message('Reading a vast-tools table of: ',
-            round(file.info(cmpr_vst_tbl)$size / 10e3, 2), ' Kbytes')
+            round(file.info(path)$size / 10e3, 2), ' Kbytes')
   }
   return(read_delim(file = path, delim = '\t', col_names = T,
-                    locale = readr::locale(decimal_mark = "."), na = "NA", ...) )
+                    locale = locale(decimal_mark = "."), na = "NA", ...) )
 }
 
 
