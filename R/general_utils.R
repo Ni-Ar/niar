@@ -227,3 +227,198 @@ encode_onehot <- function(string, alphabet_order = c('A', 'T', 'C', 'G') ) {
   }
   return(df)
 }
+
+#' My local function to enumerate the Permutations of the Elements of a Vector
+#' 
+#' @description
+#' This is a copy of the `gtools::permutations()` function. So I have one less dependency to handle since I only need this great function from that package.
+#' 
+#' @param n Size of the source vector
+#' @param r Size of the target vectors
+#' @param v Source vector. Defaults to 1:n
+#' @param set Logical flag indicating whether duplicates should be removed from the source vector v. Defaults to TRUE.
+#' @param repeats.allowed Logical flag indicating whether the constructed vectors may include duplicated values. Defaults to FALSE.
+#'
+#' @return Returns a matrix where each row contains a vector of length r.
+#' @export
+#' 
+#' @details
+#' Caution: The number of combinations and permutations increases rapidly with n and r!.
+#' To use values of n above about 45, you will need to increase R's recursion limit. See the expression argument to the options command for details on how to do this.
+#' Taken from an email by Brian D Ripley to r-help dated Tue, 14 Dec 1999 11:14:04 +0000 (GMT) in response to Alex Ahgarin. Original version was named "subsets" and was Written by Bill Venables.
+#'  
+#' @author See the authors in `gtools::permutations()`
+#'
+#' @examples
+#' # permutationz(n = length(c('A', 'T', 'C', 'G')), r = 6, v = c('A', 'T', 'C', 'G'), repeats.allowed = TRUE)
+permutationz <- function(n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE) {
+  if (mode(n) != "numeric" || length(n) != 1 || n < 1 || (n %% 1) != 
+      0) 
+    stop("bad value of n")
+  if (mode(r) != "numeric" || length(r) != 1 || r < 1 || (r %% 1) != 
+      0) 
+    stop("bad value of r")
+  if (!is.atomic(v) || length(v) < n) 
+    stop("v is either non-atomic or too short")
+  if ((r > n) & repeats.allowed == FALSE) 
+    stop("r > n and repeats.allowed=FALSE")
+  if (set) {
+    v <- unique(sort(v))
+    if (length(v) < n) 
+      stop("too few different elements")
+  }
+  v0 <- vector(mode(v), 0)
+  if (repeats.allowed) 
+    sub <- function(n, r, v) {
+      if (r == 1) 
+        matrix(v, n, 1)
+      else if (n == 1) 
+        matrix(v, 1, r)
+      else {
+        inner <- Recall(n, r - 1, v)
+        cbind(rep(v, rep(nrow(inner), n)), matrix(t(inner), 
+                                                  ncol = ncol(inner), nrow = nrow(inner) * n, 
+                                                  byrow = TRUE))
+      }
+    }
+  else sub <- function(n, r, v) {
+    if (r == 1) 
+      matrix(v, n, 1)
+    else if (n == 1) 
+      matrix(v, 1, r)
+    else {
+      X <- NULL
+      for (i in 1:n) X <- rbind(X, cbind(v[i], Recall(n - 
+                                                        1, r - 1, v[-i])))
+      X
+    }
+  }
+  sub(n, r, v[1:n])
+}
+
+#' Create same length sequence permutations for each letter 
+#'
+#' @description
+#' Given a set of letters in an alphabet return a dataframe with all the possible permutations of those letters.#' 
+#'
+#' @param sequence_length How long the sequences should be (keep this below 40)
+#' @param alphabet Letters to permutate in order to build different sequences
+#' @param verbose Show a pretty print summary data frame. Defatult `FALSE`.
+#' @param k Pretty print option: show the first k rows per letter of the alphabet
+#' @param scramble Randomize the order of the rows.
+#' @param seed Integer passed to `set.seed()` just before data is scrambled to get reproducible results. Default is `NULL`.
+#' 
+#' @return A data frame
+#' @importFrom gtools permutations
+#' @export
+#' 
+#' @details
+#' This is a handy wrapper of `gtools::permutation()` function to generate saturated permutation sequences of DNA.
+#' The number of permutations increases rapidly with the length of the `alphabet` and `sequence_length`!, I made a pretty print function
+#' that can be used to slice the permutation sequences and check the results.
+#' To show the pretty print data frame use `verbose = TRUE`.
+#' 
+#' By default the sequences are returned in alphabetical order. With `scramble = TRUE` one can reshuffle the sequences in a random order.
+#' 
+#' @seealso [print_seq_perm]
+#' 
+#' @examples
+#' dat <- permutate_seq(sequence_length = 5, k = 3, verbose = T)
+#' dat2 <- permutate_seq(sequence_length = 3, alphabet = c("W", "*", "X", "!", "%", "7"), k = 7, verbose = T)
+#' 
+#' # To make many sequencing barcodes that follow this patter: 
+#' # 'NNNN', 'AGCT', 'NNNN', 'TCAG', 'NNNN', 'TAGC', 'NNN', 'CAGT', 'NNN'
+#' 
+#' barcodes <- list()
+#' for (i in 1:100) {
+#'   tmp <- cbind( permutate_seq(sequence_length = 4, scramble = T), 'AGCT', 
+#'                 permutate_seq(sequence_length = 4, scramble = T), 'TCAG', 
+#'                 permutate_seq(sequence_length = 4, scramble = T), 'TAGC', 
+#'                 permutate_seq(sequence_length = 3, scramble = T), 'CAGT', 
+#'                 permutate_seq(sequence_length = 3, scramble = T) ) 
+#'   # concatenate into one single sequence
+#'   tmp <- apply(tmp, 1, paste0, collapse = "") |> data.frame() |> setNames('BC')
+#'   
+#'   barcodes[[i]] <- tmp
+#' }
+#' 
+#' do.call('rbind', barcodes) |> unique() |> nrow()
+#' # 25600 ( (N^4) * 100, where N = 4 )
+#' 
+permutate_seq <- function(sequence_length, alphabet = c('A', 'C', 'G', 'T'), k = 5, verbose = FALSE, 
+                          scramble = FALSE, seed = NULL) {
+  stopifnot(sequence_length >= 1)
+  alphabet <- sort(unique(alphabet))
+  
+  # this is like gtools::permutations
+  permutationz(n = length(alphabet), r = sequence_length, v = alphabet, repeats.allowed = TRUE) |>
+    apply( 1, paste0, collapse = "") |> data.frame() -> dat
+  colnames(dat) <- 'Sequence'
+  
+  # scramble order
+  if (scramble == TRUE) {
+    set.seed(seed) # for deterministic results if different from NULL
+    dat$Sequence <- dat$Sequence[sample(nrow(dat))]
+  }
+  
+  if (verbose == TRUE) {
+    print(print_seq_perm(perm_dat = dat, alphabet = alphabet, k = k) )
+  }
+  invisible(dat)
+}
+
+#' Pretty print a sequences permutation data frame
+#' 
+#' @description
+#' Show the first k rows of all the words starting with each letter of the `alphabet`.
+#'
+#' @param perm_dat the data frame generated with `permutate_seq()`
+#' @param alphabet Letters to permutate in order to build different sequences
+#' @param k Pretty print option: show k rows per letter of the alphabet
+#'
+#' @return A data frame slicing the permutation data by letter
+#' @export
+#'
+#' @details
+#' In addition to the first k words of each letter also the last k rows are always returned.
+#'
+#' @seealso [permutate_seq]
+print_seq_perm <- function(perm_dat, alphabet = c('A', 'C', 'G', 'T'), k = 6) {
+  # Get first word (in alphabetical order) for each letter in the alphabet
+  lapply(alphabet, function(x) {
+    first_letter_regex <- paste0('^', x)
+    head( which( grepl(pattern = first_letter_regex, x = perm_dat$Sequence) ), k)  
+  }) -> indx
+  
+  # add last rows as well 
+  srtd_indx <- sort(c(unlist(indx), c(
+    ( nrow(perm_dat) - (k - 1)  ):nrow(perm_dat) ) )
+  )
+  
+  # divide indexes numbers in a list with sub-vectors of length k elements
+  srtd_indx_li <- split(srtd_indx, ceiling(seq_along(srtd_indx) / k))
+  
+  # get sequences for the selected indexes
+  sapply(srtd_indx_li, FUN = function(x){
+    perm_dat[unlist(x), ]
+  }, simplify = T ) |> as.data.frame() -> sampled_seq
+  # add dot dot dot at the end of each group
+  sampled_seq[nrow(sampled_seq) + 1, ] <- '...'
+  
+  # turn into vectors
+  seq <- unlist(as.vector(sampled_seq))
+  
+  lapply(srtd_indx_li, function(x) {
+    as.character(c(x, " ..."))
+  }) |> unlist() -> indx_dot
+  
+  # sanity check
+  length(seq) == length(indx_dot)
+  
+  # make a pretty print data frame
+  pp_dat <- data.frame(Number = indx_dot, Sequence = seq, row.names = NULL)
+  # remove last row
+  pp_dat <- pp_dat[ 1:(nrow(pp_dat) - 1), ]
+  return(pp_dat)
+}
+

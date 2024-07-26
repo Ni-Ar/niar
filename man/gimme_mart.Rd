@@ -52,6 +52,9 @@ A biomaRt ensembl object
 \description{
 A function to get a biomaRt object during an R analysis that can later on be used for retrieving gene IDs, coordinates and more.
 }
+\note{
+The latest ensembl release version of the mouse genome GRCm38 (aka mm10) is \code{102}.
+}
 \examples{
 # Human ENSEMBL biomaRt object
 human_ensembl <- gimme_mart()
