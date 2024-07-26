@@ -32,6 +32,9 @@
 #' @return A biomaRt ensembl object
 #' @importFrom biomaRt useMart listDatasets listEnsemblArchives useEnsembl
 #' @export
+#' 
+#' @note
+#' The latest ensembl release version of the mouse genome GRCm38 (aka mm10) is `102`.
 #'
 #' @examples
 #' # Human ENSEMBL biomaRt object
