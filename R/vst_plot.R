@@ -1,45 +1,96 @@
-#' Plot the dPSI as an histogram using ggplot2
+#' Plot a Histogram of ΔPSI Values
 #'
-#' @param data A data.frame that has at least one column called 'dPSI'
-#' @param by_complex Logical, whether to split the histogram by AS event complexity/type. Uses vast-tools tables "COMPLEX" column.
+#' @description 
+#' This function creates a histogram of ΔPSI values from a given data frame, with optional faceting by splicing type or splicing complexity. It is particularly useful for visualising the distribution of ΔPSI values in alternative splicing analysis.
 #'
-#' @return A ggplot2 plot
+#' @param data A data frame containing the ΔPSI values and optionally the splicing type or complexity. Must include a column named 'dPSI'. If `by` is "complex" or "type", the data frame must also include a 'COMPLEX' column.
+#' @param by A character string specifying the grouping variable for faceting. Accepts "complex" (splicing complexity defined by vast-tools), "type" (splicing type: Exon, Intron, Alt. ss), or `NULL` (no faceting). Default is `NULL`.
+#' @param num_col An integer specifying the number of columns for faceted plots. Default is 1.
+#' @param x_lims A numeric vector of length 2 specifying the x-axis limits for the histogram. Default is |∆PSI| 95% (`c(-95, 95)`).
+#' @param ... Additional arguments passed to `facet_wrap()`, such as `strip.position` or `scales = "fixed"`.
+#'
+#' @details 
+#' If `by = "type"`, the function automatically categorises splicing events in the 'COMPLEX' column into one of three types: Exon, Intron, or Alternative splice site (Alt. ss). Valid splicing complexity values are:
+#' - Exon types: S, C1, C2, C3, ANN, MIC
+#' - Intron types: IR
+#' - Alternative splice sites: Alt3, Alt5
+#'
+#' The function also validates the input parameters and ensures that necessary columns are present in the data frame. It throws an informative error if any required input is missing or invalid.
+#' The `x_lims` parameter allows users to define custom x-axis limits for the histogram, providing flexibility in visualising the ΔPSI distribution over a specific range. The default is set to `c(-95, 95)`, which is suitable for most ΔPSI datasets.
+#'
+#' The `...` parameter enables the user to pass additional arguments to the `facet_wrap()` function when faceting by splicing complexity or type. This can include options such as `scales = "free"` for adjusting individual facet scales or `strip.position = "bottom"` to modify the placement of facet strip labels.
+#'
+#' @return 
+#' A `ggplot` object showing a histogram of ΔPSI values, optionally faceted by splicing complexity or type.
+#'
+#' @importFrom dplyr mutate case_when
 #' @import ggplot2
-#' 
 #' @export
 #'
-#' @examples
+#' @examples 
 #' read_vst_tbl(path = 'path/to/compare/inclusion/tbl', show_col_types = FALSE) |>
 #'    tidy_vst_psi(verbose = FALSE) |>
-#'    hist_dPSI(by_complex = TRUE)
-plot_hist_dPSI <- function(data, by_complex = FALSE) {
+#'    plot_hist_dPSI(data, by = "type", num_col = 2)
+plot_hist_dPSI <- function(data, by = NULL, num_col = 1, x_lims = c(-95, 95), ... ) {
     if ( !any(colnames(data) == 'dPSI') ) {
         stop("The input data.frame must have a column called 'dPSI'. I only see:\n",
              colnames(data) )
     } 
-    col_to_select <- c("dPSI")
-    if (by_complex) {
+    
+    # Sanity check for the 'by' parameter
+    valid_by_values <- c(NULL, "complex", "type")
+    if (!by %in% valid_by_values) {
+      stop("Invalid value for 'by'. It must be one of: NULL, 'complex', or 'type'. ",
+           "You provided: ", deparse(by))
+    }
+  
+    
+    if (by == "complex" || by == "type") {
         if ( !any(colnames(data) == 'COMPLEX') ) {
             stop("The input data.frame must have a column called 'COMPLEX' ", 
-                 "in order to use by_complex = TRUE." )
-        }
+                 "in order to use by_complex = TRUE." ) }
+      
         col_to_select <- c("dPSI", "COMPLEX")
+        
+    } else if ( is.null(by) ) {
+      col_to_select <- c("dPSI")
+      
+    } else {
+      # redundant by okay.
+      stop("The parameter 'by' must be either 'complex', 'type', or NULL" )
     }
     
-    ggplot(unique(data[, col_to_select])) +
-        aes(x = dPSI, fill = dPSI > 0 ) +
+    fltrd_data <- unique(data[, col_to_select])
+    
+    if ( by == 'type'){
+  
+      # define the AS type from the "COMPLEX" vast-tools column
+      exon_type <- c("S", "C1", "C2", "C3", "ANN", "MIC")
+      intron_type <- c("IR")
+      alt_ss <- c("Alt3", "Alt5")
+      
+      fltrd_data |>
+        mutate(COMPLEX = case_when(COMPLEX %in% exon_type ~ 'Exon',
+                                  COMPLEX %in% intron_type ~ 'Intron',
+                                  COMPLEX %in% alt_ss ~ 'Alt. ss') ) -> fltrd_data
+      
+    }
+    
+    ggplot(fltrd_data) +
+        aes(x = dPSI, fill = dPSI >= 0 ) +
         geom_histogram(binwidth = 1, show.legend = F) +
         scale_x_continuous(n.breaks = 8) +
         scale_y_continuous(n.breaks = 8, expand = expansion(mult = c(0, 0.01))) +
         scale_fill_manual(values = c("TRUE" = "firebrick3", "FALSE" = "dodgerblue3")) +
         labs(x = "\u0394PSI") +
+        coord_cartesian(xlim = x_lims) +
         theme_classic() +
         theme(panel.grid.major = element_line(colour = 'gray84', linewidth = 0.1),
               axis.text = element_text(colour = 'black'), 
               strip.background = element_blank()) -> p_dPSI
     
-    if (by_complex) { 
-        p_dPSI <- p_dPSI + facet_wrap(~ COMPLEX, scales = "free_y", ncol = 4) 
+    if ( !is.null(by) ) {
+        p_dPSI <- p_dPSI + facet_wrap(~ COMPLEX, ncol = num_col, ...) 
         
     }
     return(p_dPSI)
