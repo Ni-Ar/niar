@@ -309,16 +309,15 @@ permutationz <- function(n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE) {
 #' @param seed Integer passed to `set.seed()` just before data is scrambled to get reproducible results. Default is `NULL`.
 #' 
 #' @return A data frame
-#' @importFrom gtools permutations
 #' @export
 #' 
 #' @details
-#' This is a handy wrapper of `gtools::permutation()` function to generate saturated permutation sequences of DNA.
-#' The number of permutations increases rapidly with the length of the `alphabet` and `sequence_length`!, I made a pretty print function
-#' that can be used to slice the permutation sequences and check the results.
+#' This is a handy wrapper of `gtools::permutation()` function to generate saturated permutation sequences of DNA (or any other alphabet).
+#' The number of permutations increases rapidly with the length of the `alphabet` and `sequence_length`!. 
+#' I made a pretty print function that can be used to slice the permutation sequences and check the results.
 #' To show the pretty print data frame use `verbose = TRUE`.
-#' 
-#' By default the sequences are returned in alphabetical order. With `scramble = TRUE` one can reshuffle the sequences in a random order.
+#' By default the sequences are returned in alphabetical order. 
+#' With `scramble = TRUE` one can reshuffle the sequences in a random order.
 #' 
 #' @seealso [print_seq_perm]
 #' 
@@ -345,8 +344,8 @@ permutationz <- function(n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE) {
 #' do.call('rbind', barcodes) |> unique() |> nrow()
 #' # 25600 ( (N^4) * 100, where N = 4 )
 #' 
-permutate_seq <- function(sequence_length, alphabet = c('A', 'C', 'G', 'T'), k = 5, verbose = FALSE, 
-                          scramble = FALSE, seed = NULL) {
+permutate_seq <- function(sequence_length, alphabet = c('A', 'C', 'G', 'T'), 
+                          k = 5, verbose = FALSE, scramble = FALSE, seed = NULL) {
   stopifnot(sequence_length >= 1)
   alphabet <- sort(unique(alphabet))
   
